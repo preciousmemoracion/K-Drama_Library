@@ -1544,7 +1544,7 @@ document.addEventListener("keydown", e => {
         closeModal();
         closeSearchOverlay();
     }
-    // Press "/" to open search (when not typing)
+    // Press "/" to open search (when not typing)sedftghjkm
     if (e.key === "/" && !document.getElementById("searchOverlay").classList.contains("active")) {
         const tag = document.activeElement.tagName.toLowerCase();
         if (tag !== "input" && tag !== "textarea") {

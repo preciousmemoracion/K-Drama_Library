@@ -43,204 +43,278 @@ $total_pages = ceil($total_row['total'] / $limit);
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RiCious K-Drama Verse</title>
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Archivo:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&display=swap" rel="stylesheet">
 
 <style>
+/* ─── DESIGN TOKENS ────────────────────────────────────────────── */
 :root {
-    --red: #E50914;
-    --red-dark: #b20710;
-    --red-glow: rgba(229,9,20,0.35);
-    --black: #0a0a0a;
-    --dark: #141414;
-    --dark2: #1c1c1c;
-    --surface: #2a2a2a;
-    --surface2: #333;
-    --text: #ffffff;
-    --text-muted: #a3a3a3;
-    --text-dim: #555;
-    --gold: #f5c518;
-    --gold-dim: rgba(245,197,24,0.15);
-    --radius: 6px;
-    --radius-lg: 12px;
+    --crimson:      #e8001d;
+    --crimson-deep: #a00015;
+    --crimson-glow: rgba(232, 0, 29, 0.28);
+    --crimson-soft: rgba(232, 0, 29, 0.10);
+
+    --void:    #050508;
+    --bg:      #0c0c10;
+    --surface: #121217;
+    --lift:    #1a1a22;
+    --glass:   rgba(18, 18, 23, 0.82);
+
+    --text:       #f0eff5;
+    --text-muted: #8a8898;
+    --text-dim:   #45444e;
+
+    --gold:     #f0c040;
+    --gold-glow:rgba(240, 192, 64, 0.18);
+
+    --border:   rgba(255,255,255,0.06);
+    --border-hi:rgba(255,255,255,0.12);
+
+    --r-sm: 4px;
+    --r-md: 8px;
+    --r-lg: 14px;
+    --r-xl: 20px;
+
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-* { margin: 0; padding: 0; box-sizing: border-box; }
+/* ─── RESET & BASE ─────────────────────────────────────────────── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
-html, body {
-    background: var(--black);
+html { scroll-behavior: smooth; }
+
+body {
+    background: var(--void);
     color: var(--text);
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Archivo', sans-serif;
     min-height: 100vh;
     overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
 }
 
-/* ─── NAVBAR ─────────────────────────────────────────────── */
+/* Grain overlay */
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    pointer-events: none;
+    opacity: 0.025;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    background-size: 180px;
+}
+
+/* ─── NAVBAR ───────────────────────────────────────────────────── */
 .navbar {
     position: fixed;
     top: 0; left: 0; right: 0;
     z-index: 1000;
-    padding: 0 4%;
-    height: 68px;
+    height: 64px;
+    padding: 0 5%;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background: linear-gradient(to bottom, rgba(10,10,10,0.98) 0%, transparent 100%);
-    transition: background 0.3s, box-shadow 0.3s;
+    transition: background 0.4s, backdrop-filter 0.4s;
+}
+
+.navbar::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(5,5,8,0.95) 0%, transparent 100%);
+    z-index: -1;
+    transition: opacity 0.4s;
 }
 
 .navbar.scrolled {
-    background: rgba(10,10,10,0.98);
-    box-shadow: 0 1px 0 rgba(255,255,255,0.06);
+    background: var(--glass);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border-bottom: 1px solid var(--border);
 }
 
-.nav-left { display: flex; align-items: center; gap: 32px; }
+.navbar.scrolled::after { opacity: 0; }
+
+.nav-left { display: flex; align-items: center; gap: 36px; }
 
 .logo {
-    font-family: 'Oswald', sans-serif;
-    font-size: 24px;
-    font-weight: 700;
-    color: var(--red);
-    letter-spacing: 1.5px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 3px;
+    color: var(--text);
     text-decoration: none;
-    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
-.nav-links { display: flex; gap: 20px; }
+.logo-mark {
+    width: 28px; height: 28px;
+    background: var(--crimson);
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    flex-shrink: 0;
+}
+
+.nav-links { display: flex; gap: 2px; }
 
 .nav-links a {
     color: var(--text-muted);
     text-decoration: none;
-    font-size: 13px;
+    font-size: 12.5px;
     font-weight: 500;
-    transition: color 0.2s;
-    letter-spacing: 0.2px;
+    letter-spacing: 0.5px;
+    padding: 6px 14px;
+    border-radius: var(--r-sm);
+    transition: color 0.2s, background 0.2s;
 }
 
-.nav-links a:hover, .nav-links a.active { color: var(--text); }
+.nav-links a:hover { color: var(--text); background: var(--lift); }
+.nav-links a.active { color: var(--text); }
 
-.nav-right { display: flex; align-items: center; gap: 12px; }
+.nav-right { display: flex; align-items: center; gap: 10px; }
 
-/* ── ENHANCED NAV SEARCH ── */
-.nav-search-container {
-    position: relative;
-    display: flex;
-    align-items: center;
-}
-
+/* ── NAV SEARCH BUTTON ── */
 .search-toggle-btn {
-    background: none;
-    border: 1px solid rgba(255,255,255,0.12);
-    color: var(--text-muted);
-    cursor: pointer;
-    padding: 7px 12px;
-    border-radius: var(--radius);
-    font-size: 13px;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border-hi);
+    color: var(--text-muted);
+    padding: 7px 14px;
+    border-radius: var(--r-md);
+    font-size: 12.5px;
+    font-family: 'Archivo', sans-serif;
+    cursor: pointer;
     transition: all 0.2s;
-    font-family: 'DM Sans', sans-serif;
     letter-spacing: 0.3px;
-    white-space: nowrap;
 }
 
 .search-toggle-btn:hover {
-    border-color: rgba(255,255,255,0.3);
+    background: var(--lift);
+    border-color: rgba(255,255,255,0.18);
     color: var(--text);
-    background: var(--dark2);
 }
 
-.search-toggle-btn .kbd {
+.search-toggle-btn .slash-key {
     font-size: 10px;
-    padding: 1px 5px;
-    border: 1px solid rgba(255,255,255,0.15);
+    padding: 1px 6px;
+    background: var(--lift);
+    border: 1px solid var(--border-hi);
     border-radius: 3px;
     color: var(--text-dim);
     font-family: monospace;
+    margin-left: 2px;
 }
 
-/* Search overlay */
+.add-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--crimson);
+    color: white;
+    padding: 8px 18px;
+    border-radius: var(--r-md);
+    font-size: 12.5px;
+    font-weight: 600;
+    font-family: 'Archivo', sans-serif;
+    text-decoration: none;
+    letter-spacing: 0.4px;
+    transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+    white-space: nowrap;
+    border: none;
+    cursor: pointer;
+}
+
+.add-btn:hover {
+    background: var(--crimson-deep);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px var(--crimson-glow);
+}
+
+/* ─── SEARCH OVERLAY ───────────────────────────────────────────── */
 .search-overlay {
     display: none;
     position: fixed;
     inset: 0;
-    z-index: 3000;
-    background: rgba(0,0,0,0.85);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    z-index: 5000;
+    background: rgba(5, 5, 8, 0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     align-items: flex-start;
     justify-content: center;
-    padding-top: 80px;
+    padding-top: 90px;
 }
 
 .search-overlay.active { display: flex; }
 
 .search-overlay-inner {
     width: 100%;
-    max-width: 640px;
+    max-width: 600px;
     padding: 0 20px;
-    animation: searchDrop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    animation: searchReveal 0.28s var(--ease-spring);
 }
 
-@keyframes searchDrop {
-    from { opacity: 0; transform: translateY(-20px) scale(0.97); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
+@keyframes searchReveal {
+    from { opacity: 0; transform: translateY(-18px) scale(0.96); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-.search-input-wrap {
-    position: relative;
+.search-field-wrap {
     display: flex;
     align-items: center;
-    background: var(--dark2);
-    border: 1.5px solid rgba(255,255,255,0.15);
-    border-radius: var(--radius-lg);
+    background: var(--surface);
+    border: 1.5px solid var(--border-hi);
+    border-radius: var(--r-xl);
     overflow: hidden;
     transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-.search-input-wrap:focus-within {
-    border-color: var(--red);
-    box-shadow: 0 0 0 3px var(--red-glow), 0 8px 32px rgba(0,0,0,0.6);
+.search-field-wrap:focus-within {
+    border-color: var(--crimson);
+    box-shadow: 0 0 0 3px var(--crimson-glow), 0 16px 48px rgba(0,0,0,0.7);
 }
 
-.search-icon-left {
-    padding: 0 16px;
+.search-field-icon {
+    padding: 0 18px;
     color: var(--text-dim);
-    font-size: 18px;
-    flex-shrink: 0;
+    font-size: 17px;
     pointer-events: none;
+    flex-shrink: 0;
 }
 
-.search-main-input {
+.search-field-input {
     flex: 1;
     background: none;
     border: none;
     outline: none;
     color: var(--text);
-    font-size: 18px;
-    font-family: 'DM Sans', sans-serif;
+    font-size: 17px;
+    font-family: 'Archivo', sans-serif;
     font-weight: 400;
-    padding: 16px 0;
-    letter-spacing: 0.2px;
+    padding: 17px 0;
 }
 
-.search-main-input::placeholder { color: var(--text-dim); }
+.search-field-input::placeholder { color: var(--text-dim); }
 
-.search-input-actions {
+.search-field-right {
     display: flex;
     align-items: center;
-    padding: 0 12px;
+    padding: 0 14px;
     gap: 8px;
 }
 
-.search-clear-btn {
-    background: var(--surface);
+.search-clear {
+    background: var(--lift);
     border: none;
     color: var(--text-muted);
-    width: 24px;
-    height: 24px;
+    width: 22px; height: 22px;
     border-radius: 50%;
-    font-size: 12px;
+    font-size: 11px;
     cursor: pointer;
     display: none;
     align-items: center;
@@ -248,497 +322,569 @@ html, body {
     transition: background 0.2s;
 }
 
-.search-clear-btn.visible { display: flex; }
-.search-clear-btn:hover { background: var(--surface2); color: white; }
+.search-clear.on { display: flex; }
+.search-clear:hover { background: var(--border-hi); }
 
-.search-submit-btn {
-    background: var(--red);
+.search-go {
+    background: var(--crimson);
     border: none;
     color: white;
-    padding: 8px 18px;
-    border-radius: 6px;
-    font-size: 13px;
-    font-weight: 600;
-    font-family: 'DM Sans', sans-serif;
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-size: 12.5px;
+    font-weight: 700;
+    font-family: 'Archivo', sans-serif;
     cursor: pointer;
-    transition: background 0.2s, transform 0.1s;
-    white-space: nowrap;
+    transition: background 0.2s;
+    letter-spacing: 0.5px;
 }
 
-.search-submit-btn:hover { background: var(--red-dark); }
-.search-submit-btn:active { transform: scale(0.97); }
+.search-go:hover { background: var(--crimson-deep); }
 
-/* Search quick filters */
-.search-quick-filters {
+.search-chips-row {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-top: 14px;
+    margin-top: 16px;
     flex-wrap: wrap;
 }
 
-.search-filter-label {
-    font-size: 11px;
-    color: var(--text-dim);
+.chips-label {
+    font-size: 10px;
+    letter-spacing: 1.2px;
     text-transform: uppercase;
-    letter-spacing: 0.8px;
-    font-weight: 600;
+    color: var(--text-dim);
+    font-weight: 700;
 }
 
-.search-chip {
-    background: var(--dark2);
-    border: 1px solid rgba(255,255,255,0.1);
-    color: var(--text-muted);
-    padding: 4px 12px;
+.genre-chip {
+    padding: 5px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 20px;
+    color: var(--text-muted);
     font-size: 12px;
     cursor: pointer;
     transition: all 0.2s;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Archivo', sans-serif;
+    text-decoration: none;
 }
 
-.search-chip:hover {
-    background: var(--surface);
-    border-color: rgba(255,255,255,0.25);
-    color: white;
+.genre-chip:hover {
+    background: var(--lift);
+    border-color: var(--border-hi);
+    color: var(--text);
 }
 
-.search-chip.active {
-    background: var(--red);
-    border-color: var(--red);
-    color: white;
+.genre-chip.active {
+    background: var(--crimson-soft);
+    border-color: rgba(232,0,29,0.4);
+    color: #ff5566;
 }
 
-/* Search close hint */
-.search-esc-hint {
+.search-esc {
     text-align: center;
-    margin-top: 20px;
-    font-size: 12px;
+    margin-top: 22px;
+    font-size: 11.5px;
     color: var(--text-dim);
     letter-spacing: 0.3px;
 }
 
-.search-esc-hint kbd {
+.search-esc kbd {
     padding: 2px 8px;
     background: var(--surface);
-    border: 1px solid rgba(255,255,255,0.1);
+    border: 1px solid var(--border-hi);
     border-radius: 4px;
     font-family: monospace;
     font-size: 11px;
-    color: var(--text-muted);
 }
 
-.add-drama-btn {
-    background: var(--red);
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: var(--radius);
-    font-size: 13px;
-    font-weight: 600;
-    font-family: 'DM Sans', sans-serif;
-    cursor: pointer;
-    text-decoration: none;
-    letter-spacing: 0.3px;
-    transition: background 0.2s, transform 0.15s;
-    white-space: nowrap;
-}
-
-.add-drama-btn:hover { background: var(--red-dark); transform: scale(0.98); }
-
-/* ─── HERO ───────────────────────────────────────────────── */
+/* ─── HERO ─────────────────────────────────────────────────────── */
 .hero {
     position: relative;
-    height: 85vh;
-    min-height: 500px;
+    height: 92vh;
+    min-height: 560px;
     overflow: hidden;
     display: flex;
     align-items: flex-end;
 }
 
-.hero-bg {
+.hero-bg-img {
     position: absolute;
     inset: 0;
-    background:
-        linear-gradient(to bottom, rgba(10,10,10,0.2) 0%, rgba(10,10,10,0.05) 30%, rgba(10,10,10,0.8) 70%, rgba(10,10,10,1) 100%),
-        linear-gradient(to right, rgba(10,10,10,0.9) 0%, rgba(10,10,10,0.4) 55%, transparent 100%);
-    z-index: 1;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    object-position: center 15%;
+    filter: brightness(0.55) saturate(1.1);
+    transform: scale(1.04);
+    animation: heroZoom 12s ease-out forwards;
 }
 
-.hero-img {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: center top;
-    filter: brightness(0.65);
+@keyframes heroZoom {
+    from { transform: scale(1.08); }
+    to   { transform: scale(1.0); }
 }
 
 .hero-placeholder {
     position: absolute;
     inset: 0;
-    background: linear-gradient(135deg, #1a0a2e 0%, #0d1a2e 50%, #1a0d1a 100%);
+    background: radial-gradient(ellipse at 60% 30%, #1a0a2e 0%, #050508 60%);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 100px;
+    font-size: 120px;
+}
+
+/* Layered gradient vignette */
+.hero-vignette {
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(to bottom,
+            rgba(5,5,8,0.55) 0%,
+            rgba(5,5,8,0.0) 25%,
+            rgba(5,5,8,0.0) 45%,
+            rgba(5,5,8,0.75) 72%,
+            rgba(5,5,8,1)    100%),
+        linear-gradient(to right,
+            rgba(5,5,8,0.95) 0%,
+            rgba(5,5,8,0.6)  40%,
+            rgba(5,5,8,0.0)  70%);
+    z-index: 1;
 }
 
 .hero-content {
     position: relative;
     z-index: 2;
-    padding: 0 4% 7%;
-    max-width: 620px;
+    padding: 0 5% 8%;
+    max-width: 580px;
+    animation: heroContentIn 0.8s var(--ease-out) 0.2s both;
 }
 
-.hero-genre-tags { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+@keyframes heroContentIn {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
 
-.hero-tag {
-    background: rgba(255,255,255,0.1);
-    border: 1px solid rgba(255,255,255,0.2);
-    color: rgba(255,255,255,0.8);
-    padding: 3px 10px;
+.hero-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.hero-badge {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--crimson);
+    color: white;
+    padding: 4px 12px;
     border-radius: 3px;
-    font-size: 11px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+}
+
+.hero-genre-pill {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.7);
+    padding: 4px 12px;
+    border-radius: 3px;
+    font-size: 10px;
     font-weight: 600;
-    letter-spacing: 0.8px;
+    letter-spacing: 1px;
     text-transform: uppercase;
     backdrop-filter: blur(6px);
 }
 
 .hero-title {
-    font-family: 'Oswald', sans-serif;
-    font-size: clamp(38px, 6vw, 68px);
-    font-weight: 600;
-    line-height: 1.0;
-    letter-spacing: 1px;
-    text-shadow: 2px 4px 24px rgba(0,0,0,0.9);
-    margin-bottom: 14px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(52px, 8vw, 96px);
+    line-height: 0.95;
+    letter-spacing: 3px;
+    text-shadow: 0 4px 40px rgba(0,0,0,0.8);
+    margin-bottom: 16px;
+    text-transform: uppercase;
 }
 
-.hero-meta {
+.hero-meta-row {
     display: flex;
     align-items: center;
-    gap: 14px;
-    margin-bottom: 14px;
+    gap: 6px;
+    margin-bottom: 20px;
     flex-wrap: wrap;
 }
 
 .hero-rating {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 5px;
+    background: var(--gold-glow);
+    border: 1px solid rgba(240,192,64,0.2);
     color: var(--gold);
-    font-weight: 700;
-    font-size: 16px;
-}
-
-.hero-meta-item {
-    color: var(--text-muted);
+    padding: 4px 12px;
+    border-radius: 4px;
     font-size: 13px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
+    font-weight: 700;
 }
 
-.hero-meta-dot {
-    width: 3px; height: 3px;
-    background: var(--text-dim);
-    border-radius: 50%;
+.hero-sep { color: var(--text-dim); font-size: 12px; }
+
+.hero-info-item {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    font-weight: 400;
 }
 
 .hero-desc {
     font-size: 14px;
-    line-height: 1.65;
-    color: rgba(255,255,255,0.7);
-    margin-bottom: 26px;
-    max-width: 480px;
+    line-height: 1.7;
+    color: rgba(240,239,245,0.65);
+    max-width: 440px;
+    margin-bottom: 28px;
+    font-weight: 300;
 }
 
-.hero-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.hero-cta { display: flex; gap: 10px; flex-wrap: wrap; }
 
-.btn-play {
-    display: flex;
+.cta-primary, .cta-secondary {
+    display: inline-flex;
     align-items: center;
-    gap: 8px;
-    background: white;
-    color: black;
-    padding: 11px 26px;
-    border-radius: var(--radius);
-    font-size: 15px;
+    gap: 9px;
+    padding: 13px 28px;
+    border-radius: var(--r-md);
+    font-size: 14px;
     font-weight: 700;
+    font-family: 'Archivo', sans-serif;
+    letter-spacing: 0.4px;
     text-decoration: none;
     border: none;
     cursor: pointer;
-    font-family: 'DM Sans', sans-serif;
-    transition: background 0.2s, transform 0.15s;
+    transition: all 0.2s;
 }
 
-.btn-play:hover { background: rgba(255,255,255,0.85); transform: scale(0.98); }
+.cta-primary {
+    background: white;
+    color: #0c0c10;
+}
 
-.btn-info {
+.cta-primary:hover {
+    background: rgba(255,255,255,0.88);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(255,255,255,0.12);
+}
+
+.cta-secondary {
+    background: rgba(255,255,255,0.10);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.15);
+    backdrop-filter: blur(8px);
+}
+
+.cta-secondary:hover {
+    background: rgba(255,255,255,0.15);
+    transform: translateY(-1px);
+}
+
+/* Bottom scroll hint */
+.hero-scroll-hint {
+    position: absolute;
+    bottom: 28px;
+    right: 5%;
+    z-index: 2;
     display: flex;
     align-items: center;
     gap: 8px;
-    background: rgba(109,109,110,0.65);
-    color: white;
-    padding: 11px 26px;
-    border-radius: var(--radius);
-    font-size: 15px;
-    font-weight: 600;
-    text-decoration: none;
-    border: none;
-    cursor: pointer;
-    font-family: 'DM Sans', sans-serif;
-    backdrop-filter: blur(6px);
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    animation: floatY 2.5s ease-in-out infinite;
+}
+
+@keyframes floatY {
+    0%, 100% { transform: translateY(0); }
+    50%       { transform: translateY(-5px); }
+}
+
+.scroll-line {
+    width: 1px;
+    height: 32px;
+    background: linear-gradient(to bottom, transparent, var(--text-dim));
+}
+
+/* ─── STAT BAR (below hero) ─────────────────────────────────────── */
+.stat-bar {
+    display: flex;
+    align-items: stretch;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    z-index: 5;
+}
+
+.stat-item {
+    flex: 1;
+    padding: 18px 24px;
+    text-align: center;
+    border-right: 1px solid var(--border);
     transition: background 0.2s;
 }
 
-.btn-info:hover { background: rgba(109,109,110,0.45); }
+.stat-item:last-child { border-right: none; }
+.stat-item:hover { background: var(--lift); }
 
-/* ─── MAIN CONTENT ───────────────────────────────────────── */
-.main-content {
-    padding: 0 4% 60px;
-    margin-top: -40px;
-    position: relative;
-    z-index: 10;
+.stat-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 2px;
+    color: var(--crimson);
+    line-height: 1;
+    margin-bottom: 4px;
 }
 
-/* ─── SECTION HEADER ─────────────────────────────────────── */
+.stat-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--text-dim);
+    font-weight: 600;
+}
+
+/* ─── MAIN CONTENT ──────────────────────────────────────────────── */
+.main-content {
+    padding: 0 5% 80px;
+    background: linear-gradient(to bottom, var(--void) 0%, var(--bg) 100%);
+    position: relative;
+}
+
+/* ─── SECTION HEADER ────────────────────────────────────────────── */
 .section-header {
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     justify-content: space-between;
-    margin-bottom: 18px;
-    padding-top: 40px;
+    padding: 52px 0 22px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 28px;
 }
 
 .section-title {
-    font-family: 'Oswald', sans-serif;
-    font-size: 22px;
-    font-weight: 500;
-    letter-spacing: 0.5px;
-    color: var(--text);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    line-height: 1;
 }
 
-.section-title span { color: var(--red); }
+.section-title em {
+    color: var(--crimson);
+    font-style: normal;
+}
 
-.section-count {
+.section-subtitle {
     font-size: 12px;
     color: var(--text-dim);
-    background: var(--dark2);
-    padding: 4px 10px;
-    border-radius: 20px;
-    border: 1px solid rgba(255,255,255,0.06);
+    letter-spacing: 0.3px;
+    margin-top: 5px;
 }
 
-/* ─── SEARCH RESULT BANNER ───────────────────────────────── */
+.section-count-pill {
+    font-size: 11px;
+    color: var(--text-muted);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 5px 14px;
+    border-radius: 20px;
+    letter-spacing: 0.3px;
+    margin-bottom: 4px;
+}
+
+/* ─── SEARCH RESULT BANNER ──────────────────────────────────────── */
 .search-result-banner {
-    margin: 88px 0 28px;
-    padding: 20px 24px;
-    background: var(--dark2);
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: var(--radius-lg);
+    margin: 88px 0 32px;
+    padding: 24px 28px;
+    background: var(--surface);
+    border: 1px solid var(--border-hi);
+    border-radius: var(--r-lg);
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 16px;
     flex-wrap: wrap;
+    position: relative;
+    overflow: hidden;
+}
+
+.search-result-banner::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--crimson);
+    border-radius: 3px 0 0 3px;
 }
 
 .search-result-info h2 {
-    font-family: 'Oswald', sans-serif;
-    font-size: 20px;
-    font-weight: 400;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 1.5px;
     color: var(--text-muted);
-    margin-bottom: 4px;
+    margin-bottom: 5px;
 }
 
 .search-result-info h2 strong {
     color: var(--text);
-    font-weight: 600;
 }
 
 .search-result-info p {
     font-size: 12px;
     color: var(--text-dim);
+    letter-spacing: 0.3px;
 }
 
-.search-result-actions { display: flex; gap: 8px; align-items: center; }
+.search-result-actions { display: flex; gap: 8px; }
 
-.search-again-btn {
-    display: flex;
-    align-items: center;
-    gap: 6px;
+.srb-btn {
     padding: 8px 16px;
-    background: var(--surface);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: var(--radius);
-    color: var(--text-muted);
-    font-size: 13px;
-    font-family: 'DM Sans', sans-serif;
+    border-radius: var(--r-md);
+    font-size: 12.5px;
+    font-family: 'Archivo', sans-serif;
     cursor: pointer;
     transition: all 0.2s;
-}
-
-.search-again-btn:hover { background: var(--surface2); color: white; }
-
-.clear-search-btn {
-    display: flex;
+    letter-spacing: 0.3px;
+    text-decoration: none;
+    display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 8px 16px;
-    background: transparent;
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: var(--radius);
-    color: var(--text-dim);
-    font-size: 13px;
-    font-family: 'DM Sans', sans-serif;
-    text-decoration: none;
-    transition: all 0.2s;
 }
 
-.clear-search-btn:hover { border-color: rgba(255,255,255,0.2); color: var(--text-muted); }
+.srb-btn-search {
+    background: var(--lift);
+    border: 1px solid var(--border-hi);
+    color: var(--text-muted);
+}
 
-/* ─── DRAMA GRID ─────────────────────────────────────────── */
+.srb-btn-search:hover { background: rgba(255,255,255,0.08); color: var(--text); }
+
+.srb-btn-clear {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+}
+
+.srb-btn-clear:hover { border-color: var(--border-hi); color: var(--text-muted); }
+
+/* ─── DRAMA GRID ────────────────────────────────────────────────── */
 .drama-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 10px;
+    grid-template-columns: repeat(auto-fill, minmax(158px, 1fr));
+    gap: 14px;
 }
 
-/* ─── DRAMA CARD ─────────────────────────────────────────── */
+/* ─── DRAMA CARD ────────────────────────────────────────────────── */
 .drama-card {
     position: relative;
-    border-radius: 6px;
-    overflow: visible;
     cursor: pointer;
-    transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), z-index 0s 0.3s;
+    border-radius: var(--r-md);
+    overflow: visible;
+    transition: transform 0.35s var(--ease-out), z-index 0s 0.35s;
+    animation: cardFadeIn 0.4s var(--ease-out) both;
 }
 
+@keyframes cardFadeIn {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.drama-card:nth-child(1)  { animation-delay: 0.04s; }
+.drama-card:nth-child(2)  { animation-delay: 0.07s; }
+.drama-card:nth-child(3)  { animation-delay: 0.10s; }
+.drama-card:nth-child(4)  { animation-delay: 0.13s; }
+.drama-card:nth-child(5)  { animation-delay: 0.16s; }
+.drama-card:nth-child(6)  { animation-delay: 0.19s; }
+.drama-card:nth-child(7)  { animation-delay: 0.22s; }
+.drama-card:nth-child(8)  { animation-delay: 0.25s; }
+.drama-card:nth-child(9)  { animation-delay: 0.28s; }
+.drama-card:nth-child(10) { animation-delay: 0.31s; }
+.drama-card:nth-child(11) { animation-delay: 0.34s; }
+.drama-card:nth-child(12) { animation-delay: 0.37s; }
+
 .drama-card:hover {
-    transform: scale(1.08);
+    transform: scale(1.09) translateY(-4px);
     z-index: 100;
-    transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), z-index 0s;
+    transition: transform 0.35s var(--ease-out), z-index 0s;
+}
+
+/* Shadow on hover */
+.drama-card:hover .card-poster-wrap {
+    box-shadow: 0 18px 48px rgba(0,0,0,0.8), 0 0 0 1px var(--border-hi);
 }
 
 .card-poster-wrap {
     position: relative;
     aspect-ratio: 2/3;
-    border-radius: 6px;
+    border-radius: var(--r-md);
     overflow: hidden;
-    background: var(--dark2);
+    background: var(--surface);
+    transition: box-shadow 0.35s;
 }
 
 .card-poster {
-    width: 100%;
-    height: 100%;
+    width: 100%; height: 100%;
     object-fit: cover;
     display: block;
-    transition: filter 0.3s, transform 0.4s;
+    transition: filter 0.35s, transform 0.45s var(--ease-out);
 }
 
-.drama-card:hover .card-poster { filter: brightness(0.4); transform: scale(1.04); }
+.drama-card:hover .card-poster {
+    filter: brightness(0.35) saturate(0.8);
+    transform: scale(1.05);
+}
 
 .card-placeholder {
-    width: 100%;
-    height: 100%;
+    width: 100%; height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 48px;
-    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    font-size: 52px;
+    background: linear-gradient(145deg, var(--lift), var(--surface));
 }
 
-.card-overlay {
+/* Rating badge – always visible */
+.card-rating-badge {
     position: absolute;
-    inset: 0;
-    background: linear-gradient(to top, rgba(0,0,0,0.97) 0%, rgba(0,0,0,0.5) 55%, transparent 100%);
-    opacity: 0;
-    transition: opacity 0.3s;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    padding: 12px;
-    border-radius: 6px;
-}
-
-.drama-card:hover .card-overlay { opacity: 1; }
-
-.card-title-hover {
-    font-size: 12px;
-    font-weight: 600;
-    color: white;
-    line-height: 1.3;
-    margin-bottom: 5px;
-}
-
-.card-meta-hover {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    flex-wrap: wrap;
-    margin-bottom: 8px;
-}
-
-.card-rating-hover {
+    top: 8px; right: 8px;
+    background: rgba(5,5,8,0.85);
     color: var(--gold);
-    font-size: 10px;
+    font-size: 10.5px;
     font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(240,192,64,0.12);
+    backdrop-filter: blur(6px);
     display: flex;
     align-items: center;
-    gap: 2px;
+    gap: 3px;
+    transition: opacity 0.3s;
 }
 
-.card-year-hover { color: var(--text-muted); font-size: 10px; }
-.card-eps-hover { color: var(--text-muted); font-size: 10px; }
+.drama-card:hover .card-rating-badge { opacity: 0; }
 
-.card-actions-hover {
-    display: flex;
-    gap: 5px;
-}
-
-.card-btn {
-    flex: 1;
-    padding: 6px 6px;
-    border: none;
-    border-radius: 4px;
-    font-size: 10px;
-    font-weight: 600;
-    font-family: 'DM Sans', sans-serif;
-    cursor: pointer;
-    text-decoration: none;
-    text-align: center;
-    transition: opacity 0.2s, transform 0.1s;
-    white-space: nowrap;
-}
-
-.card-btn:hover { opacity: 0.8; transform: scale(0.97); }
-
-.card-btn-edit {
-    background: rgba(255,255,255,0.15);
-    color: white;
-    border: 1px solid rgba(255,255,255,0.25);
-    backdrop-filter: blur(4px);
-}
-
-.card-btn-delete {
-    background: rgba(229,9,20,0.85);
-    color: white;
-}
-
+/* Genre badge */
 .card-genre-badge {
     position: absolute;
-    top: 8px;
-    left: 8px;
-    background: rgba(229,9,20,0.92);
+    top: 8px; left: 8px;
+    background: var(--crimson);
     color: white;
-    font-size: 9px;
+    font-size: 8.5px;
     font-weight: 700;
-    padding: 2px 7px;
+    padding: 3px 8px;
     border-radius: 3px;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.8px;
     text-transform: uppercase;
     opacity: 0;
     transition: opacity 0.3s;
@@ -751,26 +897,88 @@ html, body {
 
 .drama-card:hover .card-genre-badge { opacity: 1; }
 
-.card-rating-badge {
+/* Card overlay */
+.card-overlay {
     position: absolute;
-    top: 8px;
-    right: 8px;
-    background: rgba(0,0,0,0.8);
+    inset: 0;
+    background: linear-gradient(to top,
+        rgba(5,5,8,1)    0%,
+        rgba(5,5,8,0.7)  50%,
+        rgba(5,5,8,0.0) 100%);
+    opacity: 0;
+    transition: opacity 0.3s;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 14px;
+    border-radius: var(--r-md);
+}
+
+.drama-card:hover .card-overlay { opacity: 1; }
+
+.card-ov-title {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: white;
+    line-height: 1.3;
+    margin-bottom: 5px;
+}
+
+.card-ov-meta {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.card-ov-rating {
     color: var(--gold);
     font-size: 10px;
     font-weight: 700;
-    padding: 3px 7px;
-    border-radius: 4px;
     display: flex;
     align-items: center;
     gap: 2px;
-    backdrop-filter: blur(4px);
-    border: 1px solid rgba(245,197,24,0.15);
 }
 
+.card-ov-year,
+.card-ov-eps {
+    color: var(--text-muted);
+    font-size: 9.5px;
+}
+
+.card-ov-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.card-ov-btn {
+    flex: 1;
+    padding: 7px 6px;
+    border-radius: var(--r-sm);
+    font-size: 10px;
+    font-weight: 700;
+    font-family: 'Archivo', sans-serif;
+    cursor: pointer;
+    text-decoration: none;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    letter-spacing: 0.4px;
+    transition: opacity 0.2s, transform 0.1s;
+    border: none;
+}
+
+.card-ov-btn:hover { opacity: 0.82; transform: scale(0.97); }
+.card-ov-btn-edit   { background: rgba(255,255,255,0.12); color: white; border: 1px solid rgba(255,255,255,0.18); }
+.card-ov-btn-delete { background: var(--crimson); color: white; }
+
+/* Card title below */
 .card-title-below {
     padding: 8px 2px 4px;
-    font-size: 12px;
+    font-size: 11.5px;
     font-weight: 500;
     color: var(--text-muted);
     line-height: 1.3;
@@ -778,69 +986,73 @@ html, body {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    letter-spacing: 0.1px;
 }
 
 .drama-card:hover .card-title-below { color: var(--text); }
 
-/* ─── EMPTY STATE ────────────────────────────────────────── */
+/* ─── EMPTY STATE ───────────────────────────────────────────────── */
 .empty-state {
     grid-column: 1 / -1;
     text-align: center;
-    padding: 80px 20px;
+    padding: 100px 20px;
 }
 
-.empty-icon { font-size: 64px; margin-bottom: 16px; }
+.empty-icon { font-size: 72px; margin-bottom: 20px; opacity: 0.5; }
 
 .empty-title {
-    font-family: 'Oswald', sans-serif;
-    font-size: 24px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px;
+    letter-spacing: 2px;
     color: var(--text-muted);
-    margin-bottom: 8px;
+    margin-bottom: 10px;
 }
 
-.empty-sub { font-size: 14px; color: var(--text-dim); }
+.empty-sub { font-size: 13px; color: var(--text-dim); }
 
-/* ─── PAGINATION ─────────────────────────────────────────── */
+/* ─── PAGINATION ────────────────────────────────────────────────── */
 .pagination {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 6px;
-    margin-top: 48px;
+    gap: 5px;
+    margin-top: 56px;
     flex-wrap: wrap;
 }
 
-.pg-btn {
+.pg {
     padding: 8px 16px;
-    border-radius: var(--radius);
+    border-radius: var(--r-md);
     text-decoration: none;
-    font-size: 13px;
-    font-weight: 500;
-    font-family: 'DM Sans', sans-serif;
+    font-size: 12.5px;
+    font-weight: 600;
+    font-family: 'Archivo', sans-serif;
     transition: all 0.2s;
-    border: 1px solid rgba(255,255,255,0.1);
+    border: 1px solid var(--border);
     cursor: pointer;
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    letter-spacing: 0.3px;
 }
 
-.pg-num { background: transparent; color: var(--text-muted); }
-.pg-num:hover { background: var(--surface); color: white; }
-.pg-active { background: var(--red); color: white; border-color: var(--red); }
-.pg-nav { background: var(--dark2); color: var(--text-muted); }
-.pg-nav:hover { background: var(--surface); color: white; }
-.pg-disabled { opacity: 0.25; pointer-events: none; }
+.pg-num   { background: transparent; color: var(--text-muted); }
+.pg-num:hover { background: var(--lift); color: var(--text); border-color: var(--border-hi); }
+.pg-active { background: var(--crimson); color: white; border-color: var(--crimson); }
+.pg-nav   { background: var(--surface); color: var(--text-muted); }
+.pg-nav:hover { background: var(--lift); color: var(--text); }
+.pg-disabled { opacity: 0.2; pointer-events: none; }
 
-/* ─── ENHANCED MODAL ─────────────────────────────────────── */
+/* ─── MODAL ─────────────────────────────────────────────────────── */
 .modal-overlay {
     display: none;
     position: fixed;
     inset: 0;
-    z-index: 2000;
-    background: rgba(0,0,0,0.88);
+    z-index: 4000;
+    background: rgba(5,5,8,0.90);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     justify-content: center;
     align-items: center;
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
     padding: 20px;
 }
 
@@ -848,284 +1060,282 @@ html, body {
 
 .modal-card {
     position: relative;
-    background: var(--dark);
-    border-radius: 14px;
-    overflow: hidden;
+    background: var(--surface);
+    border: 1px solid var(--border-hi);
+    border-radius: var(--r-xl);
     width: 100%;
-    max-width: 780px;
+    max-width: 800px;
     max-height: 90vh;
     overflow-y: auto;
-    animation: modalIn 0.32s cubic-bezier(0.34, 1.45, 0.64, 1);
-    box-shadow: 0 32px 80px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,255,255,0.06);
-    display: flex;
-    flex-direction: column;
+    animation: modalSpring 0.35s var(--ease-spring);
+    box-shadow: 0 48px 100px rgba(0,0,0,0.9);
+    scrollbar-width: none;
 }
 
-/* hide scrollbar inside modal */
-.modal-card::-webkit-scrollbar { width: 0; }
+.modal-card::-webkit-scrollbar { display: none; }
 
-@keyframes modalIn {
-    from { transform: scale(0.88) translateY(24px); opacity: 0; }
-    to { transform: scale(1) translateY(0); opacity: 1; }
+@keyframes modalSpring {
+    from { transform: scale(0.88) translateY(28px); opacity: 0; }
+    to   { transform: scale(1) translateY(0); opacity: 1; }
 }
-
-/* Modal top section: landscape image + quick info side by side */
-.modal-top {
-    display: flex;
-    min-height: 280px;
-    flex-shrink: 0;
-}
-
-.modal-poster-col {
-    position: relative;
-    width: 200px;
-    flex-shrink: 0;
-    overflow: hidden;
-}
-
-.modal-poster-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: center top;
-    display: block;
-}
-
-.modal-poster-placeholder {
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(135deg, #1a0a2e, #16213e);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 60px;
-}
-
-.modal-poster-overlay {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(to right, transparent 60%, var(--dark) 100%);
-}
-
-.modal-info-col {
-    flex: 1;
-    padding: 28px 28px 20px 24px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    min-width: 0;
-}
-
-/* Rating ring */
-.modal-rating-ring {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 12px;
-}
-
-.rating-circle {
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background: var(--gold-dim);
-    border: 2.5px solid var(--gold);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.rating-circle .rating-num {
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--gold);
-    line-height: 1;
-}
-
-.rating-circle .rating-label {
-    font-size: 8px;
-    color: var(--gold);
-    opacity: 0.7;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-}
-
-.modal-title {
-    font-family: 'Oswald', sans-serif;
-    font-size: clamp(20px, 3vw, 28px);
-    font-weight: 600;
-    line-height: 1.1;
-    letter-spacing: 0.5px;
-    margin-bottom: 14px;
-}
-
-.modal-stats-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-bottom: 18px;
-}
-
-.modal-stat {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 8px;
-    padding: 10px 14px;
-}
-
-.modal-stat-label {
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    color: var(--text-dim);
-    font-weight: 600;
-    margin-bottom: 4px;
-}
-
-.modal-stat-value {
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--text);
-}
-
-.modal-genres { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px; }
-
-.modal-genre-tag {
-    background: rgba(229,9,20,0.12);
-    border: 1px solid rgba(229,9,20,0.3);
-    color: #ff6b6b;
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.4px;
-}
-
-/* Modal action buttons */
-.modal-actions {
-    display: flex;
-    gap: 10px;
-}
-
-.modal-btn {
-    flex: 1;
-    padding: 11px 16px;
-    border-radius: var(--radius);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-    text-align: center;
-    text-decoration: none;
-    cursor: pointer;
-    border: none;
-    transition: opacity 0.2s, transform 0.15s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 7px;
-    letter-spacing: 0.3px;
-}
-
-.modal-btn:hover { opacity: 0.85; transform: scale(0.98); }
-.modal-btn-edit { background: #2563eb; color: white; }
-.modal-btn-delete { background: var(--red); color: white; }
-
-/* Drama description area */
-.modal-bottom {
-    padding: 0 28px 28px;
-    border-top: 1px solid rgba(255,255,255,0.06);
-    padding-top: 20px;
-    flex-shrink: 0;
-}
-
-.modal-bottom-label {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    color: var(--text-dim);
-    font-weight: 600;
-    margin-bottom: 10px;
-}
-
-.modal-about-text {
-    font-size: 14px;
-    line-height: 1.65;
-    color: var(--text-muted);
-}
-
-/* Stars display */
-.star-row {
-    display: flex;
-    gap: 2px;
-    margin-bottom: 6px;
-}
-
-.star { font-size: 14px; }
-.star.filled { color: var(--gold); }
-.star.empty { color: var(--surface2); }
 
 /* Modal close */
-.modal-close {
+.modal-x {
     position: absolute;
-    top: 14px;
-    right: 14px;
-    width: 34px;
-    height: 34px;
+    top: 16px; right: 16px;
+    width: 36px; height: 36px;
     border-radius: 50%;
-    background: rgba(0,0,0,0.7);
-    border: 1px solid rgba(255,255,255,0.15);
-    color: white;
-    font-size: 18px;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid var(--border-hi);
+    color: var(--text-muted);
+    font-size: 19px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 10;
-    transition: background 0.2s;
+    transition: background 0.2s, color 0.2s;
+    backdrop-filter: blur(6px);
     line-height: 1;
-    backdrop-filter: blur(4px);
 }
 
-.modal-close:hover { background: var(--red); }
+.modal-x:hover { background: var(--crimson); color: white; border-color: var(--crimson); }
 
-/* ─── SCROLLBAR ──────────────────────────────────────────── */
-::-webkit-scrollbar { width: 5px; }
-::-webkit-scrollbar-track { background: var(--black); }
-::-webkit-scrollbar-thumb { background: var(--surface); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #555; }
+/* Modal top: banner image */
+.modal-banner {
+    position: relative;
+    height: 260px;
+    overflow: hidden;
+    border-radius: var(--r-xl) var(--r-xl) 0 0;
+    flex-shrink: 0;
+}
 
-/* ─── FOOTER ─────────────────────────────────────────────── */
+.modal-banner-img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    object-position: center 20%;
+    display: block;
+    filter: brightness(0.55) saturate(1.1);
+}
+
+.modal-banner-placeholder {
+    width: 100%; height: 100%;
+    background: linear-gradient(135deg, #1a0a2e, #0d1a2e);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 80px;
+}
+
+.modal-banner-gradient {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom,
+        transparent 30%,
+        rgba(18,18,23,0.6) 70%,
+        var(--surface) 100%);
+}
+
+/* Rating ring on banner */
+.modal-rating-pill {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(5,5,8,0.85);
+    border: 1px solid rgba(240,192,64,0.2);
+    padding: 8px 16px;
+    border-radius: 30px;
+    backdrop-filter: blur(8px);
+}
+
+.modal-rating-val {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 1px;
+    color: var(--gold);
+    line-height: 1;
+}
+
+.modal-rating-sub {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+}
+
+.modal-rating-stars { display: flex; gap: 2px; }
+.star { font-size: 12px; }
+.star.on  { color: var(--gold); }
+.star.off { color: var(--text-dim); }
+
+/* Modal body */
+.modal-body {
+    padding: 24px 28px 28px;
+}
+
+.modal-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(26px, 4vw, 38px);
+    letter-spacing: 2px;
+    line-height: 1;
+    margin-bottom: 14px;
+}
+
+.modal-tags {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+
+.modal-tag {
+    background: var(--crimson-soft);
+    border: 1px solid rgba(232,0,29,0.25);
+    color: #ff6677;
+    padding: 4px 13px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+/* Stats row */
+.modal-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 22px;
+}
+
+.modal-stat {
+    background: var(--lift);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.modal-stat-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.modal-stat-text {}
+
+.modal-stat-label {
+    font-size: 9.5px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    font-weight: 700;
+    margin-bottom: 3px;
+}
+
+.modal-stat-val {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+}
+
+/* About */
+.modal-divider {
+    height: 1px;
+    background: var(--border);
+    margin-bottom: 18px;
+}
+
+.modal-section-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-dim);
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.modal-about {
+    font-size: 13.5px;
+    line-height: 1.7;
+    color: var(--text-muted);
+    font-weight: 300;
+}
+
+/* Modal actions */
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 24px;
+}
+
+.modal-btn {
+    flex: 1;
+    padding: 13px 20px;
+    border-radius: var(--r-md);
+    font-family: 'Archivo', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    letter-spacing: 0.4px;
+}
+
+.modal-btn:hover { opacity: 0.85; transform: translateY(-1px); }
+
+.modal-btn-edit   { background: #1d4ed8; color: white; }
+.modal-btn-delete { background: var(--crimson); color: white; }
+
+/* ─── SCROLLBAR ─────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--void); }
+::-webkit-scrollbar-thumb { background: var(--lift); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-hi); }
+
+/* ─── FOOTER ────────────────────────────────────────────────────── */
 footer {
     text-align: center;
-    padding: 32px 4%;
-    border-top: 1px solid rgba(255,255,255,0.05);
+    padding: 36px 5%;
+    border-top: 1px solid var(--border);
     color: var(--text-dim);
-    font-size: 12px;
+    font-size: 11.5px;
+    letter-spacing: 0.3px;
+    background: var(--surface);
 }
 
-footer span { color: var(--red); }
+footer em { color: var(--crimson); font-style: normal; }
 
-/* ─── RESPONSIVE ─────────────────────────────────────────── */
-@media (max-width: 600px) {
-    .modal-top { flex-direction: column; min-height: unset; }
-    .modal-poster-col { width: 100%; height: 200px; }
-    .modal-poster-overlay { background: linear-gradient(to bottom, transparent 60%, var(--dark) 100%); }
-    .modal-info-col { padding: 20px; }
-    .modal-stats-grid { grid-template-columns: 1fr 1fr; }
-    .nav-links { display: none; }
-    .drama-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+/* ─── RESPONSIVE ────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+    .modal-stats       { grid-template-columns: 1fr 1fr; }
+    .modal-body        { padding: 20px; }
+    .modal-banner      { height: 200px; }
+    .nav-links         { display: none; }
+    .hero-title        { font-size: clamp(44px, 14vw, 72px); }
+    .drama-grid        { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+    .stat-bar          { display: none; }
 }
 </style>
 </head>
-
 <body>
 
-<!-- NAVBAR -->
+<!-- ─── NAVBAR ─────────────────────────────────────────────────── -->
 <nav class="navbar" id="navbar">
     <div class="nav-left">
-        <a href="?" class="logo">🎬 KDramaVerse</a>
+        <a href="?" class="logo">
+            <div class="logo-mark">▶</div>
+            KDRAMAVERSE
+        </a>
         <div class="nav-links">
             <a href="?" class="active">Home</a>
             <a href="?sort=rating">Top Rated</a>
@@ -1134,100 +1344,98 @@ footer span { color: var(--red); }
         </div>
     </div>
     <div class="nav-right">
-        <button class="search-toggle-btn" id="searchToggleBtn" onclick="openSearchOverlay()">
-            <span>🔍</span>
-            <span>Search</span>
-            <span class="kbd">/</span>
+        <button class="search-toggle-btn" onclick="openSearch()">
+            🔍 Search <span class="slash-key">/</span>
         </button>
-        <a href="add.php" class="add-drama-btn">+ Add Drama</a>
+        <a href="add.php" class="add-btn">＋ Add Drama</a>
     </div>
 </nav>
 
-<!-- SEARCH OVERLAY -->
-<div class="search-overlay" id="searchOverlay" onclick="handleOverlayClick(event)">
+<!-- ─── SEARCH OVERLAY ─────────────────────────────────────────── -->
+<div class="search-overlay" id="searchOverlay" onclick="handleOverlayBg(event)">
     <div class="search-overlay-inner">
         <form method="GET" id="searchForm">
-            <div class="search-input-wrap">
-                <span class="search-icon-left">🔍</span>
+            <div class="search-field-wrap">
+                <span class="search-field-icon">🔍</span>
                 <input
                     type="text"
                     name="search"
-                    class="search-main-input"
-                    id="searchMainInput"
-                    placeholder="Search dramas, genres, year, rating…"
+                    class="search-field-input"
+                    id="searchInput"
+                    placeholder="Search titles, genres, year, rating…"
                     value="<?php echo htmlspecialchars($search); ?>"
                     autocomplete="off"
                     spellcheck="false">
-                <div class="search-input-actions">
-                    <button type="button" class="search-clear-btn" id="searchClearBtn" onclick="clearSearch()">✕</button>
-                    <button type="submit" class="search-submit-btn">Search</button>
+                <div class="search-field-right">
+                    <button type="button" class="search-clear" id="clearBtn" onclick="clearSearchField()">✕</button>
+                    <button type="submit" class="search-go">Search</button>
                 </div>
             </div>
         </form>
 
-        <div class="search-quick-filters">
-            <span class="search-filter-label">Quick:</span>
+        <div class="search-chips-row">
+            <span class="chips-label">Quick:</span>
             <?php
             $genres = ['Romance', 'Thriller', 'Fantasy', 'Comedy', 'Mystery', 'Historical'];
             foreach ($genres as $g):
-                $isActive = strtolower($search) === strtolower($g);
+                $active = strtolower($search) === strtolower($g);
             ?>
-            <a href="?search=<?php echo urlencode($g); ?>" 
-               class="search-chip <?php echo $isActive ? 'active' : ''; ?>"
-               onclick="closeSearchOverlay()">
+            <a href="?search=<?php echo urlencode($g); ?>"
+               class="genre-chip <?php echo $active ? 'active' : ''; ?>"
+               onclick="closeSearch()">
                 <?php echo $g; ?>
             </a>
             <?php endforeach; ?>
         </div>
 
-        <p class="search-esc-hint">Press <kbd>Esc</kbd> to close</p>
+        <p class="search-esc">Press <kbd>Esc</kbd> to dismiss</p>
     </div>
 </div>
 
 <?php if (empty($search)): ?>
-
-<!-- HERO SECTION -->
+<!-- ─── HERO ───────────────────────────────────────────────────── -->
 <section class="hero">
-    <?php if ($featured): ?>
-        <?php
+    <?php if ($featured):
         $img = !empty($featured['image']) ? basename($featured['image']) : 'default.jpg';
         $imgPath = "img/" . $img;
         if (!file_exists(__DIR__ . "/img/" . $img)) $imgPath = "img/default.jpg";
-        ?>
+    ?>
         <?php if (file_exists(__DIR__ . "/" . $imgPath)): ?>
-            <img class="hero-img" src="<?php echo htmlspecialchars($imgPath); ?>"
-                alt="<?php echo htmlspecialchars($featured['title']); ?>">
+            <img class="hero-bg-img" src="<?php echo htmlspecialchars($imgPath); ?>"
+                 alt="<?php echo htmlspecialchars($featured['title']); ?>">
         <?php else: ?>
             <div class="hero-placeholder">🎭</div>
         <?php endif; ?>
 
-        <div class="hero-bg"></div>
+        <div class="hero-vignette"></div>
 
         <div class="hero-content">
-            <div class="hero-genre-tags">
+            <div class="hero-eyebrow">
+                <span class="hero-badge">★ Top Rated</span>
                 <?php
                 $genres = explode(',', $featured['genre']);
-                foreach ($genres as $g): ?>
-                    <span class="hero-tag"><?php echo trim(htmlspecialchars($g)); ?></span>
+                foreach (array_slice($genres, 0, 2) as $g):
+                ?>
+                    <span class="hero-genre-pill"><?php echo trim(htmlspecialchars($g)); ?></span>
                 <?php endforeach; ?>
             </div>
 
             <h1 class="hero-title"><?php echo htmlspecialchars($featured['title']); ?></h1>
 
-            <div class="hero-meta">
-                <div class="hero-rating">⭐ <?php echo $featured['rating']; ?></div>
-                <div class="hero-meta-dot"></div>
-                <div class="hero-meta-item"><?php echo $featured['released_year']; ?></div>
-                <div class="hero-meta-dot"></div>
-                <div class="hero-meta-item"><?php echo $featured['episodes']; ?> Episodes</div>
+            <div class="hero-meta-row">
+                <span class="hero-rating">⭐ <?php echo $featured['rating']; ?>/10</span>
+                <span class="hero-sep">·</span>
+                <span class="hero-info-item"><?php echo $featured['released_year']; ?></span>
+                <span class="hero-sep">·</span>
+                <span class="hero-info-item"><?php echo $featured['episodes']; ?> Episodes</span>
             </div>
 
             <p class="hero-desc">
-                The highest-rated drama in your collection. A must-watch for any K-Drama enthusiast.
+                The highest-rated drama in your collection — a must-watch masterpiece that defines the genre.
             </p>
 
-            <div class="hero-actions">
-                <button class="btn-play"
+            <div class="hero-cta">
+                <button class="cta-primary"
                     onclick="openModal(
                         '<?php echo addslashes(htmlspecialchars($imgPath)); ?>',
                         '<?php echo addslashes(htmlspecialchars($featured['title'])); ?>',
@@ -1238,51 +1446,84 @@ footer span { color: var(--red); }
                         '<?php echo $featured['id']; ?>')">
                     ▶ View Details
                 </button>
-                <a href="edit.php?id=<?php echo $featured['id']; ?>" class="btn-info">✏ Edit</a>
+                <a href="edit.php?id=<?php echo $featured['id']; ?>" class="cta-secondary">✏ Edit Entry</a>
             </div>
         </div>
+
+        <div class="hero-scroll-hint">
+            <span>Scroll</span>
+            <div class="scroll-line"></div>
+        </div>
+
     <?php else: ?>
         <div class="hero-placeholder">🎭</div>
-        <div class="hero-bg"></div>
+        <div class="hero-vignette"></div>
         <div class="hero-content">
-            <h1 class="hero-title">Welcome to<br>KDramaVerse</h1>
-            <p class="hero-desc">Your personal K-Drama library. Start by adding your first drama!</p>
-            <div class="hero-actions">
-                <a href="add.php" class="btn-play">+ Add First Drama</a>
+            <h1 class="hero-title">Your Drama<br>Library</h1>
+            <p class="hero-desc">Start building your personal K-Drama collection.</p>
+            <div class="hero-cta">
+                <a href="add.php" class="cta-primary">＋ Add First Drama</a>
             </div>
         </div>
     <?php endif; ?>
 </section>
 
+<!-- ─── STAT BAR ───────────────────────────────────────────────── -->
+<div class="stat-bar">
+    <div class="stat-item">
+        <div class="stat-num"><?php echo $total_row['total']; ?></div>
+        <div class="stat-label">Titles</div>
+    </div>
+    <?php
+    $genres_result = $conn->query("SELECT COUNT(DISTINCT genre) as c FROM dramas");
+    $g_row = $genres_result ? $genres_result->fetch_assoc() : ['c' => 0];
+    $avg_result = $conn->query("SELECT ROUND(AVG(rating),1) as avg_r FROM dramas");
+    $avg_row = $avg_result ? $avg_result->fetch_assoc() : ['avg_r' => 0];
+    $yr_result = $conn->query("SELECT MIN(released_year) as oldest FROM dramas");
+    $yr_row = $yr_result ? $yr_result->fetch_assoc() : ['oldest' => '—'];
+    ?>
+    <div class="stat-item">
+        <div class="stat-num"><?php echo $avg_row['avg_r'] ?: '—'; ?></div>
+        <div class="stat-label">Avg Rating</div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-num"><?php echo $g_row['c'] ?: '—'; ?></div>
+        <div class="stat-label">Genres</div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-num"><?php echo $yr_row['oldest'] ?: '—'; ?></div>
+        <div class="stat-label">Oldest Year</div>
+    </div>
+</div>
+
 <?php endif; ?>
 
-<!-- MAIN CONTENT -->
+<!-- ─── MAIN CONTENT ───────────────────────────────────────────── -->
 <div class="main-content">
 
     <?php if (!empty($search)): ?>
-    <!-- Search result banner -->
     <div class="search-result-banner">
         <div class="search-result-info">
             <h2>Results for <strong>"<?php echo htmlspecialchars($search); ?>"</strong></h2>
             <p><?php echo $total_row['total']; ?> drama<?php echo $total_row['total'] != 1 ? 's' : ''; ?> found</p>
         </div>
         <div class="search-result-actions">
-            <button class="search-again-btn" onclick="openSearchOverlay()">🔍 Search Again</button>
-            <a href="?" class="clear-search-btn">✕ Clear</a>
+            <button class="srb-btn srb-btn-search" onclick="openSearch()">🔍 Search Again</button>
+            <a href="?" class="srb-btn srb-btn-clear">✕ Clear</a>
         </div>
     </div>
     <?php else: ?>
-
     <div class="section-header">
-        <h2 class="section-title">All <span>Dramas</span></h2>
-        <span class="section-count"><?php echo $total_row['total']; ?> titles</span>
+        <div>
+            <h2 class="section-title">All <em>Dramas</em></h2>
+            <div class="section-subtitle">Sorted by rating · Your collection</div>
+        </div>
+        <span class="section-count-pill"><?php echo $total_row['total']; ?> titles</span>
     </div>
-
     <?php endif; ?>
 
-    <!-- DRAMA GRID -->
+    <!-- GRID -->
     <div class="drama-grid">
-
     <?php
     if ($result && $result->num_rows > 0) {
         while ($row = $result->fetch_assoc()) {
@@ -1291,29 +1532,20 @@ footer span { color: var(--red); }
             if (!file_exists(__DIR__ . "/img/" . $img)) $imgPath = "img/default.jpg";
             $hasImg = file_exists(__DIR__ . "/" . $imgPath);
 
-            $title_js   = addslashes(htmlspecialchars($row['title']));
-            $genre_js   = addslashes(htmlspecialchars($row['genre']));
-            $imgPath_js = addslashes(htmlspecialchars($imgPath));
-
-            // First genre only for badge
+            $tj = addslashes(htmlspecialchars($row['title']));
+            $gj = addslashes(htmlspecialchars($row['genre']));
+            $ij = addslashes(htmlspecialchars($imgPath));
             $firstGenre = trim(explode(',', $row['genre'])[0]);
     ?>
-
         <div class="drama-card"
-            onclick="openModal('<?php echo $imgPath_js; ?>',
-                '<?php echo $title_js; ?>',
-                '<?php echo $genre_js; ?>',
-                '<?php echo $row['rating']; ?>',
-                '<?php echo $row['episodes']; ?>',
-                '<?php echo $row['released_year']; ?>',
-                '<?php echo $row['id']; ?>')">
+            onclick="openModal('<?php echo $ij; ?>','<?php echo $tj; ?>','<?php echo $gj; ?>','<?php echo $row['rating']; ?>','<?php echo $row['episodes']; ?>','<?php echo $row['released_year']; ?>','<?php echo $row['id']; ?>')">
 
             <div class="card-poster-wrap">
                 <?php if ($hasImg): ?>
                     <img class="card-poster"
-                        src="<?php echo htmlspecialchars($imgPath); ?>"
-                        alt="<?php echo htmlspecialchars($row['title']); ?>"
-                        loading="lazy">
+                         src="<?php echo htmlspecialchars($imgPath); ?>"
+                         alt="<?php echo htmlspecialchars($row['title']); ?>"
+                         loading="lazy">
                 <?php else: ?>
                     <div class="card-placeholder">🎭</div>
                 <?php endif; ?>
@@ -1322,120 +1554,112 @@ footer span { color: var(--red); }
                 <div class="card-genre-badge"><?php echo htmlspecialchars($firstGenre); ?></div>
 
                 <div class="card-overlay">
-                    <div class="card-title-hover"><?php echo htmlspecialchars($row['title']); ?></div>
-                    <div class="card-meta-hover">
-                        <span class="card-rating-hover">⭐ <?php echo $row['rating']; ?></span>
-                        <span class="card-year-hover"><?php echo $row['released_year']; ?></span>
-                        <span class="card-eps-hover">· <?php echo $row['episodes']; ?> eps</span>
+                    <div class="card-ov-title"><?php echo htmlspecialchars($row['title']); ?></div>
+                    <div class="card-ov-meta">
+                        <span class="card-ov-rating">⭐ <?php echo $row['rating']; ?></span>
+                        <span class="card-ov-year"><?php echo $row['released_year']; ?></span>
+                        <span class="card-ov-eps">· <?php echo $row['episodes']; ?> eps</span>
                     </div>
-                    <div class="card-actions-hover" onclick="event.stopPropagation()">
-                        <a href="edit.php?id=<?php echo $row['id']; ?>" class="card-btn card-btn-edit">✏ Edit</a>
+                    <div class="card-ov-actions" onclick="event.stopPropagation()">
+                        <a href="edit.php?id=<?php echo $row['id']; ?>" class="card-ov-btn card-ov-btn-edit">✏ Edit</a>
                         <a href="delete.php?id=<?php echo $row['id']; ?>"
-                            class="card-btn card-btn-delete"
-                            onclick="return confirmDelete()">🗑 Delete</a>
+                           class="card-ov-btn card-ov-btn-delete"
+                           onclick="return confirmDelete()">🗑 Delete</a>
                     </div>
                 </div>
             </div>
 
             <div class="card-title-below"><?php echo htmlspecialchars($row['title']); ?></div>
         </div>
-
     <?php
         }
     } else {
         echo '<div class="empty-state">
                 <div class="empty-icon">🔍</div>
-                <div class="empty-title">No dramas found</div>
+                <div class="empty-title">No Dramas Found</div>
                 <p class="empty-sub">Try a different keyword or browse all dramas.</p>
               </div>';
     }
     ?>
-
-    </div><!-- end drama-grid -->
+    </div><!-- /drama-grid -->
 
     <!-- PAGINATION -->
-    <?php if ($total_pages > 1): ?>
+    <?php if ($total_pages > 1):
+        $q = !empty($search) ? "&search=" . urlencode($search) : '';
+    ?>
     <div class="pagination">
         <?php
-        $query = !empty($search) ? "&search=" . urlencode($search) : '';
-        $isFirst = ($page == 1);
-        $isLast  = ($page == $total_pages);
+        echo "<a class='pg pg-nav" . ($page==1?" pg-disabled":"") . "' href='?page=1$q'>«</a>";
+        if ($page > 1) echo "<a class='pg pg-nav' href='?page=".($page-1)."$q'>‹</a>";
 
-        echo "<a class='pg-btn pg-nav" . ($isFirst ? " pg-disabled" : "") . "' href='?page=1$query'>« First</a>";
-        if ($page > 1) echo "<a class='pg-btn pg-nav' href='?page=".($page-1)."$query'>‹ Prev</a>";
-
-        $start_pg = max(1, $page - 2);
-        $end_pg   = min($total_pages, $page + 2);
-        if ($start_pg > 1) echo "<span class='pg-btn pg-num' style='opacity:0.4'>…</span>";
-        for ($i = $start_pg; $i <= $end_pg; $i++) {
-            if ($i == $page)
-                echo "<span class='pg-btn pg-active'>$i</span>";
-            else
-                echo "<a class='pg-btn pg-num' href='?page=$i$query'>$i</a>";
+        $sp = max(1, $page-2);
+        $ep = min($total_pages, $page+2);
+        if ($sp > 1) echo "<span class='pg pg-num' style='opacity:.35'>…</span>";
+        for ($i = $sp; $i <= $ep; $i++) {
+            if ($i == $page) echo "<span class='pg pg-active'>$i</span>";
+            else echo "<a class='pg pg-num' href='?page=$i$q'>$i</a>";
         }
-        if ($end_pg < $total_pages) echo "<span class='pg-btn pg-num' style='opacity:0.4'>…</span>";
+        if ($ep < $total_pages) echo "<span class='pg pg-num' style='opacity:.35'>…</span>";
 
-        if ($page < $total_pages) echo "<a class='pg-btn pg-nav' href='?page=".($page+1)."$query'>Next ›</a>";
-        echo "<a class='pg-btn pg-nav" . ($isLast ? " pg-disabled" : "") . "' href='?page=$total_pages$query'>Last »</a>";
+        if ($page < $total_pages) echo "<a class='pg pg-nav' href='?page=".($page+1)."$q'>›</a>";
+        echo "<a class='pg pg-nav" . ($page==$total_pages?" pg-disabled":"") . "' href='?page=$total_pages$q'>»</a>";
         ?>
     </div>
     <?php endif; ?>
 
-</div><!-- end main-content -->
+</div><!-- /main-content -->
 
 <footer>
-    <p>© <?php echo date('Y'); ?> <span>RiCious KDramaVerse</span> — Your Personal Drama Collection</p>
+    © <?php echo date('Y'); ?> <em>RiCious KDramaVerse</em> — Your Personal Drama Collection
 </footer>
 
-<!-- ─── ENHANCED MODAL ──────────────────────────────────── -->
+<!-- ─── MODAL ──────────────────────────────────────────────────── -->
 <div id="imageModal" class="modal-overlay" onclick="closeModal()">
     <div class="modal-card" onclick="event.stopPropagation()">
-        <button class="modal-close" onclick="closeModal()">×</button>
+        <button class="modal-x" onclick="closeModal()">×</button>
 
-        <!-- Top: poster + info side by side -->
-        <div class="modal-top">
-            <div class="modal-poster-col" id="modalPosterCol">
-                <img id="modalImg" src="" alt="" class="modal-poster-img">
-                <div class="modal-poster-overlay"></div>
-            </div>
-            <div class="modal-info-col">
-                <!-- Rating -->
+        <div class="modal-banner">
+            <img id="modalBannerImg" src="" alt="" class="modal-banner-img">
+            <div id="modalBannerPlaceholder" class="modal-banner-placeholder" style="display:none">🎭</div>
+            <div class="modal-banner-gradient"></div>
+            <div class="modal-rating-pill">
                 <div>
-                    <div class="modal-rating-ring">
-                        <div class="rating-circle" id="modalRatingCircle">
-                            <span class="rating-num" id="modalRatingNum"></span>
-                            <span class="rating-label">Rating</span>
-                        </div>
-                        <div>
-                            <div class="star-row" id="modalStars"></div>
-                            <div style="font-size:12px; color:var(--text-dim);">IMDb-style score</div>
-                        </div>
-                    </div>
-
-                    <h2 class="modal-title" id="modalTitle"></h2>
-
-                    <div class="modal-genres" id="modalGenres"></div>
-
-                    <div class="modal-stats-grid">
-                        <div class="modal-stat">
-                            <div class="modal-stat-label">📅 Year</div>
-                            <div class="modal-stat-value" id="modalYear"></div>
-                        </div>
-                        <div class="modal-stat">
-                            <div class="modal-stat-label">🎬 Episodes</div>
-                            <div class="modal-stat-value" id="modalEps"></div>
-                        </div>
-                    </div>
+                    <div class="modal-rating-val" id="modalRatingVal"></div>
+                    <div class="modal-rating-sub">Rating</div>
                 </div>
-
-                <div class="modal-actions" id="modalActions"></div>
+                <div>
+                    <div class="modal-rating-stars" id="modalStars"></div>
+                    <div style="font-size:9px; color:var(--text-dim); margin-top:2px; letter-spacing:0.5px; text-transform:uppercase;">Out of 10</div>
+                </div>
             </div>
         </div>
 
-        <!-- Bottom: about -->
-        <div class="modal-bottom">
-            <div class="modal-bottom-label">About this Drama</div>
-            <p class="modal-about-text" id="modalAbout"></p>
+        <div class="modal-body">
+            <h2 class="modal-title" id="modalTitle"></h2>
+            <div class="modal-tags" id="modalTags"></div>
+
+            <div class="modal-stats">
+                <div class="modal-stat">
+                    <div class="modal-stat-icon">📅</div>
+                    <div class="modal-stat-text">
+                        <div class="modal-stat-label">Released</div>
+                        <div class="modal-stat-val" id="modalYear"></div>
+                    </div>
+                </div>
+                <div class="modal-stat">
+                    <div class="modal-stat-icon">🎬</div>
+                    <div class="modal-stat-text">
+                        <div class="modal-stat-label">Episodes</div>
+                        <div class="modal-stat-val" id="modalEps"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-divider"></div>
+            <div class="modal-section-label">About this Drama</div>
+            <p class="modal-about" id="modalAbout"></p>
+
+            <div class="modal-actions" id="modalActions"></div>
         </div>
     </div>
 </div>
@@ -1447,45 +1671,42 @@ function confirmDelete() {
 
 function buildStars(rating) {
     const filled = Math.round(parseFloat(rating) / 2);
-    let html = '';
-    for (let i = 1; i <= 5; i++) {
-        html += `<span class="star ${i <= filled ? 'filled' : 'empty'}">★</span>`;
-    }
-    return html;
+    return Array.from({length: 5}, (_, i) =>
+        `<span class="star ${i < filled ? 'on' : 'off'}">★</span>`
+    ).join('');
 }
 
 function openModal(src, title, genre, rating, eps, year, id) {
-    // Poster
-    const img = document.getElementById("modalImg");
-    img.src = src;
-    img.alt = title;
+    const bannerImg = document.getElementById("modalBannerImg");
+    const bannerPh  = document.getElementById("modalBannerPlaceholder");
 
-    // Title
+    if (src && src !== 'img/default.jpg') {
+        bannerImg.src = src;
+        bannerImg.style.display = 'block';
+        bannerPh.style.display  = 'none';
+    } else {
+        bannerImg.style.display = 'none';
+        bannerPh.style.display  = 'flex';
+    }
+
     document.getElementById("modalTitle").textContent = title;
-
-    // Rating circle
-    document.getElementById("modalRatingNum").textContent = rating;
+    document.getElementById("modalRatingVal").textContent = rating;
     document.getElementById("modalStars").innerHTML = buildStars(rating);
-
-    // Year / episodes
     document.getElementById("modalYear").textContent = year;
     document.getElementById("modalEps").textContent = eps;
 
-    // Genres as chips
-    const genreContainer = document.getElementById("modalGenres");
-    genreContainer.innerHTML = '';
+    const tags = document.getElementById("modalTags");
+    tags.innerHTML = '';
     genre.split(',').forEach(g => {
-        const chip = document.createElement('span');
-        chip.className = 'modal-genre-tag';
-        chip.textContent = g.trim();
-        genreContainer.appendChild(chip);
+        const s = document.createElement('span');
+        s.className = 'modal-tag';
+        s.textContent = g.trim();
+        tags.appendChild(s);
     });
 
-    // About text (placeholder — replace with real synopsis field if available)
     document.getElementById("modalAbout").textContent =
-        `"${title}" is a ${genre.split(',')[0].trim().toLowerCase()} K-Drama from ${year} with ${eps} episodes. Rated ${rating}/10 in your collection.`;
+        `"${title}" is a ${genre.split(',')[0].trim().toLowerCase()} K-Drama released in ${year}, spanning ${eps} episode${eps != 1 ? 's' : ''}. It holds a ${rating}/10 rating in your personal collection.`;
 
-    // Action buttons
     document.getElementById("modalActions").innerHTML =
         `<a href="edit.php?id=${id}" class="modal-btn modal-btn-edit">✏ Edit Drama</a>
          <a href="delete.php?id=${id}" class="modal-btn modal-btn-delete" onclick="return confirmDelete()">🗑 Delete</a>`;
@@ -1499,71 +1720,53 @@ function closeModal() {
     document.body.style.overflow = "";
 }
 
-// ── SEARCH OVERLAY ──
-function openSearchOverlay() {
-    const overlay = document.getElementById("searchOverlay");
-    overlay.classList.add("active");
+/* Search overlay */
+function openSearch() {
+    document.getElementById("searchOverlay").classList.add("active");
     document.body.style.overflow = "hidden";
     setTimeout(() => {
-        const input = document.getElementById("searchMainInput");
-        input.focus();
-        input.select();
-        updateClearBtn();
+        const inp = document.getElementById("searchInput");
+        inp.focus(); inp.select();
+        syncClearBtn();
     }, 60);
 }
 
-function closeSearchOverlay() {
+function closeSearch() {
     document.getElementById("searchOverlay").classList.remove("active");
     document.body.style.overflow = "";
 }
 
-function handleOverlayClick(e) {
-    if (e.target === document.getElementById("searchOverlay")) {
-        closeSearchOverlay();
-    }
+function handleOverlayBg(e) {
+    if (e.target === document.getElementById("searchOverlay")) closeSearch();
 }
 
-function clearSearch() {
-    const input = document.getElementById("searchMainInput");
-    input.value = '';
-    input.focus();
-    document.getElementById("searchClearBtn").classList.remove("visible");
+function clearSearchField() {
+    const inp = document.getElementById("searchInput");
+    inp.value = '';
+    inp.focus();
+    syncClearBtn();
 }
 
-function updateClearBtn() {
-    const input = document.getElementById("searchMainInput");
-    const btn = document.getElementById("searchClearBtn");
-    btn.classList.toggle("visible", input.value.length > 0);
+function syncClearBtn() {
+    const inp = document.getElementById("searchInput");
+    document.getElementById("clearBtn").classList.toggle("on", inp.value.length > 0);
 }
 
-document.getElementById("searchMainInput").addEventListener("input", updateClearBtn);
+document.getElementById("searchInput").addEventListener("input", syncClearBtn);
 
-// Keyboard shortcuts
+/* Keyboard shortcuts */
 document.addEventListener("keydown", e => {
-    if (e.key === "Escape") {
-        closeModal();
-        closeSearchOverlay();
-    }
-    // Press "/" to open search (when not typing)sedftghjkm
+    if (e.key === "Escape") { closeModal(); closeSearch(); }
     if (e.key === "/" && !document.getElementById("searchOverlay").classList.contains("active")) {
         const tag = document.activeElement.tagName.toLowerCase();
-        if (tag !== "input" && tag !== "textarea") {
-            e.preventDefault();
-            openSearchOverlay();
-        }
+        if (tag !== "input" && tag !== "textarea") { e.preventDefault(); openSearch(); }
     }
 });
 
-// Navbar scroll
+/* Navbar scroll state */
 window.addEventListener("scroll", () => {
-    document.getElementById("navbar").classList.toggle("scrolled", window.scrollY > 60);
-});
-
-// Auto-open search overlay if there's a search term on load
-<?php if (!empty($search)): ?>
-// Search was performed, keep overlay closed (results shown in page)
-<?php endif; ?>
+    document.getElementById("navbar").classList.toggle("scrolled", window.scrollY > 50);
+}, { passive: true });
 </script>
-
 </body>
 </html>

@@ -1,7 +1,7 @@
 <?php include "db.php"; ?>
 
 <?php
-$limit = 12;
+$limit = 100;
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $start = ($page - 1) * $limit;
 $search = isset($_GET['search']) ? $conn->real_escape_string($_GET['search']) : '';

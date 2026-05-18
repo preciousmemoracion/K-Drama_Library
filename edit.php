@@ -12,25 +12,43 @@ if (!$data) {
     exit;
 }
 
-$success = false;
-
 if (isset($_POST['update'])) {
-    $title    = htmlspecialchars($_POST['title']);
-    $genre    = htmlspecialchars($_POST['genre']);
+
+    // DO NOT use htmlspecialchars here
+    $title    = trim($_POST['title']);
+    $genre    = trim($_POST['genre']);
     $episodes = intval($_POST['episodes']);
     $year     = intval($_POST['released_year']);
     $rating   = floatval($_POST['rating']);
 
-    // Handle optional image update
-    $image = $data['image']; // keep existing by default
+    // Keep old image if no new image uploaded
+    $image = $data['image'];
+
     if (!empty($_FILES['image']['name'])) {
+
         $image = basename($_FILES['image']['name']);
         $tmp   = $_FILES['image']['tmp_name'];
+
         move_uploaded_file($tmp, "uploads/" . $image);
     }
 
-    $upd = $conn->prepare("UPDATE dramas SET title=?, genre=?, episodes=?, released_year=?, rating=?, image=? WHERE id=?");
-    $upd->bind_param("ssiidsi", $title, $genre, $episodes, $year, $rating, $image, $id);
+    $upd = $conn->prepare("
+        UPDATE dramas 
+        SET title=?, genre=?, episodes=?, released_year=?, rating=?, image=? 
+        WHERE id=?
+    ");
+
+    $upd->bind_param(
+        "ssiidsi",
+        $title,
+        $genre,
+        $episodes,
+        $year,
+        $rating,
+        $image,
+        $id
+    );
+
     $upd->execute();
 
     header("Location: index.php");

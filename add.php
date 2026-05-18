@@ -2,8 +2,10 @@
 
 if(isset($_POST['submit'])){
 
-    $title = htmlspecialchars($_POST['title']);
-    $genre = htmlspecialchars($_POST['genre']);
+    // FIXED
+    $title = trim($_POST['title']);
+    $genre = trim($_POST['genre']);
+
     $episodes = intval($_POST['episodes']);
     $year = intval($_POST['released_year']);
     $rating = floatval($_POST['rating']);
@@ -11,12 +13,28 @@ if(isset($_POST['submit'])){
     // IMAGE UPLOAD
     $image = basename($_FILES['image']['name']);
     $tmp = $_FILES['image']['tmp_name'];
+
     $folder = "uploads/" . $image;
+
     move_uploaded_file($tmp, $folder);
 
-    // Insert into database (use prepared statements for safety)
-    $stmt = $conn->prepare("INSERT INTO dramas (title, genre, episodes, released_year, rating, image) VALUES (?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("ssiids", $title, $genre, $episodes, $year, $rating, $image);
+    // INSERT
+    $stmt = $conn->prepare("
+        INSERT INTO dramas
+        (title, genre, episodes, released_year, rating, image)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ");
+
+    $stmt->bind_param(
+        "ssiids",
+        $title,
+        $genre,
+        $episodes,
+        $year,
+        $rating,
+        $image
+    );
+
     $stmt->execute();
 
     header("Location: index.php");

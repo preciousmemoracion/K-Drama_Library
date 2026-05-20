@@ -1,44 +1,116 @@
 <?php include "db.php";
 
+// Add error reporting for debugging (optional, remove in production)
+// error_reporting(E_ALL);
+// ini_set('display_errors', 1);
+
+// Function to check if drama title already exists and return existing drama info
+function checkDuplicateDrama($conn, $title) {
+    $check_stmt = $conn->prepare("SELECT id, title, image FROM dramas WHERE title = ?");
+    $check_stmt->bind_param("s", $title);
+    $check_stmt->execute();
+    $result = $check_stmt->get_result();
+    
+    if ($result->num_rows > 0) {
+        return $result->fetch_assoc();
+    }
+    $check_stmt->close();
+    return null;
+}
+
+$error_message = '';
+$warning_message = '';
+$existing_drama = null;
+$old_input = []; // Store old input for repopulation
+
 if(isset($_POST['submit'])){
 
     // FIXED
     $title = trim($_POST['title']);
     $genre = trim($_POST['genre']);
-
     $episodes = intval($_POST['episodes']);
     $year = intval($_POST['released_year']);
     $rating = floatval($_POST['rating']);
+    
+    // Store for repopulation in case of error
+    $old_input = [
+        'title' => $title,
+        'genre' => $genre,
+        'episodes' => $episodes,
+        'year' => $year,
+        'rating' => $rating
+    ];
 
-    // IMAGE UPLOAD
-    $image = basename($_FILES['image']['name']);
-    $tmp = $_FILES['image']['tmp_name'];
+    // Check for duplicate title
+    $existing_drama = checkDuplicateDrama($conn, $title);
+    
+    if ($existing_drama !== null) {
+        // Set warning message instead of error - more friendly
+        $warning_message = true; // Just flag to show modal
+    } else {
+        // No duplicate found - proceed with insert
+        // IMAGE UPLOAD
+        $image = basename($_FILES['image']['name']);
+        $tmp = $_FILES['image']['tmp_name'];
+        
+        // Create uploads directory if it doesn't exist
+        if (!is_dir("uploads")) {
+            mkdir("uploads", 0777, true);
+        }
+        
+        // Generate unique filename to prevent overwriting (optional but good practice)
+        $image_ext = pathinfo($image, PATHINFO_EXTENSION);
+        $image_name = pathinfo($image, PATHINFO_FILENAME);
+        $unique_image = $image_name . '_' . time() . '.' . $image_ext;
+        $folder = "uploads/" . $unique_image;
+        
+        // Validate file upload
+        if ($_FILES['image']['error'] === UPLOAD_ERR_OK) {
+            // Check file size (max 5MB)
+            if ($_FILES['image']['size'] <= 5 * 1024 * 1024) {
+                // Allowed image types
+                $allowed_types = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+                $file_type = mime_content_type($tmp);
+                
+                if (in_array($file_type, $allowed_types)) {
+                    if (move_uploaded_file($tmp, $folder)) {
+                        // INSERT using unique image name
+                        $stmt = $conn->prepare("
+                            INSERT INTO dramas
+                            (title, genre, episodes, released_year, rating, image)
+                            VALUES (?, ?, ?, ?, ?, ?)
+                        ");
 
-    $folder = "uploads/" . $image;
+                        $stmt->bind_param(
+                            "ssiids",
+                            $title,
+                            $genre,
+                            $episodes,
+                            $year,
+                            $rating,
+                            $unique_image  // Save unique filename
+                        );
 
-    move_uploaded_file($tmp, $folder);
-
-    // INSERT
-    $stmt = $conn->prepare("
-        INSERT INTO dramas
-        (title, genre, episodes, released_year, rating, image)
-        VALUES (?, ?, ?, ?, ?, ?)
-    ");
-
-    $stmt->bind_param(
-        "ssiids",
-        $title,
-        $genre,
-        $episodes,
-        $year,
-        $rating,
-        $image
-    );
-
-    $stmt->execute();
-
-    header("Location: index.php");
-    exit;
+                        if ($stmt->execute()) {
+                            header("Location: index.php?success=added");
+                            exit;
+                        } else {
+                            $error_message = "❌ Database error: " . $stmt->error;
+                        }
+                        $stmt->close();
+                    } else {
+                        $error_message = "❌ Failed to upload image. Please check folder permissions.";
+                    }
+                } else {
+                    $error_message = "❌ Invalid file type. Please upload JPG, PNG, or WEBP images only.";
+                }
+            } else {
+                $error_message = "❌ File too large. Maximum size is 5MB.";
+            }
+        } else {
+            $error_message = "❌ Please select an image file.";
+        }
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -46,7 +118,7 @@ if(isset($_POST['submit'])){
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add K-Drama</title>
+    <title>Add K-Drama | Watchlist Manager</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 
     <style>
@@ -61,6 +133,12 @@ if(isset($_POST['submit'])){
             --text:      #f0eee8;
             --muted:     #7a7890;
             --radius:    14px;
+            --error-bg:  rgba(232,66,106,0.12);
+            --error-border: rgba(232,66,106,0.3);
+            --success-bg: rgba(68, 189, 108, 0.12);
+            --success-border: rgba(68, 189, 108, 0.3);
+            --warning-bg: rgba(244, 196, 106, 0.12);
+            --warning-border: rgba(244, 196, 106, 0.3);
         }
 
         *, *::before, *::after {
@@ -208,6 +286,185 @@ if(isset($_POST['submit'])){
             font-weight: 300;
         }
 
+        /* ── ALERT MESSAGES ── */
+        .alert {
+            margin: 0 36px 20px 36px;
+            padding: 14px 16px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: slideDown 0.4s ease-out;
+        }
+
+        .alert-error {
+            background: var(--error-bg);
+            border-left: 3px solid var(--accent);
+            color: var(--accent2);
+        }
+
+        .alert-success {
+            background: var(--success-bg);
+            border-left: 3px solid #44bd6c;
+            color: #44bd6c;
+        }
+
+        .alert-warning {
+            background: var(--warning-bg);
+            border-left: 3px solid var(--gold);
+            color: var(--gold);
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .alert-icon {
+            font-size: 18px;
+        }
+
+        /* ── MODAL STYLES ── */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 28px;
+            max-width: 400px;
+            width: 90%;
+            overflow: hidden;
+            animation: modalSlide 0.35s cubic-bezier(0.34, 1.2, 0.64, 1);
+        }
+
+        @keyframes modalSlide {
+            from { transform: scale(0.95) translateY(-20px); opacity: 0; }
+            to { transform: scale(1) translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #1e1828 0%, #16121f 100%);
+            padding: 24px 28px 20px;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .modal-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        .modal-header h2 {
+            font-family: 'Noto Serif KR', serif;
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--gold);
+        }
+
+        .modal-body {
+            padding: 28px;
+            text-align: center;
+        }
+
+        .existing-drama-card {
+            background: var(--surface);
+            border-radius: 16px;
+            padding: 16px;
+            margin: 16px 0;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            border: 1px solid var(--border);
+        }
+
+        .existing-drama-img {
+            width: 60px;
+            height: 80px;
+            border-radius: 10px;
+            object-fit: cover;
+            background: var(--bg);
+        }
+
+        .existing-drama-info {
+            flex: 1;
+            text-align: left;
+        }
+
+        .existing-drama-info h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--text);
+        }
+
+        .existing-drama-info p {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .modal-btn {
+            padding: 12px 24px;
+            border-radius: 40px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .modal-btn-cancel {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--muted);
+        }
+
+        .modal-btn-cancel:hover {
+            background: rgba(255,255,255,0.05);
+            color: var(--text);
+        }
+
+        .modal-btn-continue {
+            background: linear-gradient(135deg, #e8426a 0%, #c42d52 100%);
+            color: white;
+        }
+
+        .modal-btn-continue:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(232,66,106,0.4);
+        }
+
         /* ── FORM BODY ── */
         .card-body {
             padding: 32px 36px 36px;
@@ -266,6 +523,12 @@ if(isset($_POST['submit'])){
             border-color: rgba(232,66,106,0.5);
             box-shadow: 0 0 0 3px rgba(232,66,106,0.08);
             background: #14141e;
+        }
+
+        /* error state for inputs */
+        input.error {
+            border-color: var(--gold);
+            box-shadow: 0 0 0 2px rgba(244,196,106,0.15);
         }
 
         /* ── IMAGE UPLOAD ── */
@@ -466,6 +729,7 @@ if(isset($_POST['submit'])){
             .card-footer { padding-left: 24px; padding-right: 24px; }
             .form-grid { grid-template-columns: 1fr; }
             .field.full, .upload-zone, .divider, .btn-submit { grid-column: auto; }
+            .alert { margin-left: 24px; margin-right: 24px; }
         }
     </style>
 </head>
@@ -481,33 +745,46 @@ if(isset($_POST['submit'])){
         <p>Expand your watchlist with a new series</p>
     </div>
 
+    <!-- ERROR / SUCCESS MESSAGES -->
+    <?php if(isset($error_message) && !empty($error_message)): ?>
+        <div class="alert alert-error">
+            <span class="alert-icon">⚠️</span>
+            <span><?php echo htmlspecialchars($error_message); ?></span>
+        </div>
+    <?php endif; ?>
+
     <!-- BODY -->
     <div class="card-body">
-      <form method="POST" enctype="multipart/form-data">
+      <form method="POST" enctype="multipart/form-data" id="dramaForm">
         <div class="form-grid">
 
           <!-- Title -->
           <div class="field full">
             <label>Title <span class="req">*</span></label>
-            <input type="text" name="title" placeholder="e.g. Crash Landing on You" required>
+            <input type="text" name="title" id="titleInput" placeholder="e.g. Crash Landing on You" 
+                   value="<?php echo isset($old_input['title']) ? htmlspecialchars($old_input['title']) : ''; ?>"
+                   required>
           </div>
 
           <!-- Genre -->
           <div class="field">
             <label>Genre</label>
-            <input type="text" name="genre" placeholder="e.g. Romance">
+            <input type="text" name="genre" placeholder="e.g. Romance, Thriller, Comedy"
+                   value="<?php echo isset($old_input['genre']) ? htmlspecialchars($old_input['genre']) : ''; ?>">
           </div>
 
           <!-- Episodes -->
           <div class="field">
             <label>Episodes</label>
-            <input type="number" name="episodes" placeholder="16" min="1">
+            <input type="number" name="episodes" placeholder="16" min="1"
+                   value="<?php echo isset($old_input['episodes']) ? $old_input['episodes'] : ''; ?>">
           </div>
 
           <!-- Year -->
           <div class="field">
             <label>Release Year</label>
-            <input type="number" name="released_year" placeholder="2024" min="1990" max="2099">
+            <input type="number" name="released_year" placeholder="2024" min="1990" max="2099"
+                   value="<?php echo isset($old_input['year']) ? $old_input['year'] : ''; ?>">
           </div>
 
           <!-- Rating -->
@@ -515,7 +792,8 @@ if(isset($_POST['submit'])){
             <label>Rating</label>
             <div class="rating-wrap">
                 <input type="number" name="rating" id="ratingInput"
-                       placeholder="8.5" min="0" max="10" step="0.1">
+                       placeholder="8.5" min="0" max="10" step="0.1"
+                       value="<?php echo isset($old_input['rating']) ? $old_input['rating'] : ''; ?>">
             </div>
           </div>
 
@@ -525,7 +803,7 @@ if(isset($_POST['submit'])){
           <div class="field full">
             <label>Poster Image <span class="req">*</span></label>
             <div class="upload-zone" id="uploadZone">
-                <input type="file" name="image" id="fileInput" accept="image/*" required>
+                <input type="file" name="image" id="fileInput" accept="image/jpeg,image/png,image/webp,image/jpg" required>
                 <div class="upload-inner" id="uploadInner">
                     <div class="upload-icon">
                         <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg">
@@ -545,7 +823,7 @@ if(isset($_POST['submit'])){
           </div>
 
           <!-- Submit -->
-          <button class="btn-submit" name="submit" type="submit">
+          <button class="btn-submit" name="submit" type="submit" id="submitBtn">
               Add to Library
           </button>
 
@@ -566,6 +844,34 @@ if(isset($_POST['submit'])){
   </div>
 </div>
 
+<!-- DUPLICATE WARNING MODAL -->
+<div id="duplicateModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-icon">⚠️</div>
+            <h2>Already in Library</h2>
+        </div>
+        <div class="modal-body">
+            <p style="margin-bottom: 8px;">This drama already exists in your collection:</p>
+            
+            <div class="existing-drama-card" id="existingDramaCard">
+                <img id="existingDramaImg" class="existing-drama-img" src="" alt="Existing drama poster">
+                <div class="existing-drama-info">
+                    <h3 id="existingDramaTitle"></h3>
+                    <p id="existingDramaDetails"></p>
+                </div>
+            </div>
+            
+            <p style="font-size: 13px; color: var(--muted);">Do you still want to add it as a new entry?</p>
+            
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-cancel" id="cancelDuplicateBtn">Cancel</button>
+                <button class="modal-btn modal-btn-continue" id="continueDuplicateBtn">Add Anyway</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     // ── Image preview
     const fileInput   = document.getElementById('fileInput');
@@ -574,10 +880,50 @@ if(isset($_POST['submit'])){
     const uploadPreview = document.getElementById('uploadPreview');
     const previewImg  = document.getElementById('previewImg');
     const previewName = document.getElementById('previewName');
+    const titleInput  = document.getElementById('titleInput');
+    const submitBtn   = document.getElementById('submitBtn');
+    const dramaForm   = document.getElementById('dramaForm');
+    
+    // Modal elements
+    const modal = document.getElementById('duplicateModal');
+    const cancelBtn = document.getElementById('cancelDuplicateBtn');
+    const continueBtn = document.getElementById('continueDuplicateBtn');
+    const existingDramaImg = document.getElementById('existingDramaImg');
+    const existingDramaTitle = document.getElementById('existingDramaTitle');
+    const existingDramaDetails = document.getElementById('existingDramaDetails');
 
+    // Flag to track if we're overriding duplicate check
+    let forceSubmit = false;
+    let duplicateData = null;
+
+    // File preview handler
     fileInput.addEventListener('change', function() {
         const file = this.files[0];
-        if (!file) return;
+        if (!file) {
+            uploadInner.style.opacity = '1';
+            uploadPreview.style.display = 'none';
+            return;
+        }
+        
+        // Validate file type
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+        if (!allowedTypes.includes(file.type)) {
+            alert('❌ Invalid file type. Please upload JPG, PNG, or WEBP images only.');
+            this.value = ''; // Clear the file input
+            uploadInner.style.opacity = '1';
+            uploadPreview.style.display = 'none';
+            return;
+        }
+        
+        // Validate file size (5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            alert('❌ File too large. Maximum size is 5MB.');
+            this.value = '';
+            uploadInner.style.opacity = '1';
+            uploadPreview.style.display = 'none';
+            return;
+        }
+        
         const reader = new FileReader();
         reader.onload = e => {
             previewImg.src = e.target.result;
@@ -602,7 +948,69 @@ if(isset($_POST['submit'])){
             fileInput.dispatchEvent(new Event('change'));
         }
     });
-</script>
 
-</body>
-</html>
+    // Real-time duplicate title check with modal trigger
+    let checkTimeout;
+    if (titleInput) {
+        titleInput.addEventListener('input', function() {
+            clearTimeout(checkTimeout);
+            const title = this.value.trim();
+            
+            // Remove existing error styling
+            this.classList.remove('error');
+            const existingError = document.getElementById('live-title-error');
+            if (existingError) existingError.remove();
+            
+            if (title.length < 2) return;
+            
+            // Debounced AJAX check
+            checkTimeout = setTimeout(() => {
+                fetch('check_duplicate.php?title=' + encodeURIComponent(title))
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.exists) {
+                            titleInput.classList.add('error');
+                            const errorSpan = document.createElement('small');
+                            errorSpan.id = 'live-title-error';
+                            errorSpan.style.color = '#f4c46a';
+                            errorSpan.style.fontSize = '10px';
+                            errorSpan.style.marginTop = '4px';
+                            errorSpan.style.display = 'block';
+                            errorSpan.textContent = '⚠️ This title already exists in your library';
+                            if (!titleInput.parentNode.querySelector('#live-title-error')) {
+                                titleInput.parentNode.appendChild(errorSpan);
+                            }
+                        } else {
+                            titleInput.classList.remove('error');
+                            const existing = document.getElementById('live-title-error');
+                            if (existing) existing.remove();
+                        }
+                    })
+                    .catch(err => console.log('Live check unavailable'));
+            }, 500);
+        });
+    }
+
+    // Form submission validation with duplicate check via AJAX
+    dramaForm.addEventListener('submit', function(e) {
+        e.preventDefault(); // Always prevent default first
+        
+        const title = titleInput.value.trim();
+        if (title === '') {
+            alert('Please enter a drama title.');
+            titleInput.focus();
+            return;
+        }
+        
+        if (!fileInput.files || fileInput.files.length === 0) {
+            alert('Please select a poster image.');
+            return;
+        }
+        
+        // Double-check file type before submit
+        const file = fileInput.files[0];
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+        if (!allowedTypes.includes(file.type)) {
+            alert('❌ Invalid file type. Please upload JPG, PNG, or WEBP images only.');
+            return;
+       

@@ -647,7 +647,6 @@ function rateCard(id, val) {
   document.getElementById('rate-val-'+id).value = val;
   form.submit();
 }
-
 // Add loading state to status buttons
 document.querySelectorAll('.status-form-PTW_ID').forEach(form => {
-  // This is handled by the individual forms
+  // This is handled by the individual forms     

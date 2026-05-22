@@ -1,6 +1,6 @@
 <?php include "db.php"; ?>
 <?php
-$limit = 100;
+$limit = 1000;
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $start = ($page - 1) * $limit;
 $search = isset($_GET['search']) ? $conn->real_escape_string($_GET['search']) : '';
@@ -34,6 +34,13 @@ $gc = $genre_result ? $genre_result->fetch_assoc()['c'] : '—';
 $ptw_map = [];
 $ptw_q = $conn->query("SELECT drama_title, status FROM plan_to_watch");
 if($ptw_q) while($r = $ptw_q->fetch_assoc()) $ptw_map[strtolower(trim($r['drama_title']))] = $r['status'];
+
+// Active nav detection
+$navHome    = !isset($_GET['search']) && !isset($_GET['sort']);
+$navRating  = !empty($_GET['sort']) && $_GET['sort'] === 'rating' && empty($search);
+$navRomance = strtolower($search) === 'romance';
+$navThriller = strtolower($search) === 'thriller';
+$navWatchlist = basename($_SERVER['PHP_SELF']) === 'plan-to-watch.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -103,8 +110,20 @@ body::after{
 .nav-logo-name{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:700;color:var(--t0);letter-spacing:.3px}
 .nav-logo-name em{color:var(--red);font-style:italic}
 .nav-links{display:flex;gap:2px}
-.nav-links a{color:var(--t1);text-decoration:none;font-size:13px;font-weight:400;padding:6px 14px;border-radius:8px;transition:all .2s;display:flex;align-items:center;gap:6px}
-.nav-links a:hover,.nav-links a.active{color:var(--t0);background:rgba(255,255,255,.05)}
+.nav-links a{
+  color:var(--t1);text-decoration:none;font-size:13px;font-weight:400;
+  padding:6px 14px;border-radius:8px;transition:all .2s;
+  display:flex;align-items:center;gap:6px;position:relative;
+}
+.nav-links a:hover{color:var(--t0);background:rgba(255,255,255,.05)}
+.nav-links a.active{
+  color:var(--t0);background:rgba(232,23,58,.12);
+  font-weight:600;
+}
+.nav-links a.active::after{
+  content:'';position:absolute;bottom:-2px;left:50%;transform:translateX(-50%);
+  width:20px;height:2px;background:var(--red);border-radius:2px;
+}
 .nav-links a .nav-badge{
   background:var(--purple);color:#fff;font-size:9px;font-weight:700;
   padding:2px 6px;border-radius:99px;letter-spacing:.3px;
@@ -206,7 +225,7 @@ body::after{
 
 /* ── Card Grid ── */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:18px}
-.card{position:relative;cursor:pointer;border-radius:var(--rad);overflow:visible;transition:transform .36s var(--ease),z-index 0s .36s;animation:cin .45s var(--ease) both}
+.card{position:relative;border-radius:var(--rad);overflow:visible;transition:transform .36s var(--ease),z-index 0s .36s;animation:cin .45s var(--ease) both}
 @keyframes cin{from{opacity:0;transform:translateY(16px) scale(.97)}to{opacity:1;transform:none}}
 .card:nth-child(1){animation-delay:.04s}.card:nth-child(2){animation-delay:.07s}
 .card:nth-child(3){animation-delay:.10s}.card:nth-child(4){animation-delay:.13s}
@@ -216,7 +235,10 @@ body::after{
 .card:nth-child(11){animation-delay:.34s}.card:nth-child(12){animation-delay:.37s}
 .card:hover{transform:scale(1.08) translateY(-8px);z-index:200;transition:transform .36s var(--ease),z-index 0s}
 .card:hover .cpw{box-shadow:0 28px 60px rgba(0,0,0,.95),0 0 0 1px var(--bhi),0 0 40px rgba(155,93,229,.2)}
-.cpw{position:relative;aspect-ratio:2/3;border-radius:var(--rad);overflow:hidden;background:var(--s2);transition:box-shadow .36s}
+.cpw{
+  position:relative;aspect-ratio:2/3;border-radius:var(--rad);overflow:hidden;
+  background:var(--s2);transition:box-shadow .36s;cursor:pointer;
+}
 .cposter{width:100%;height:100%;object-fit:cover;display:block;transition:filter .36s,transform .5s var(--ease)}
 .card:hover .cposter{filter:brightness(.22) saturate(.6);transform:scale(1.05)}
 .cph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:52px;background:linear-gradient(145deg,var(--s2),var(--s3))}
@@ -225,6 +247,16 @@ body::after{
 .cbadge-genre{position:absolute;top:8px;left:8px;z-index:2;background:var(--red);color:#fff;font-size:7.5px;font-weight:700;padding:3px 9px;border-radius:4px;letter-spacing:.9px;text-transform:uppercase;opacity:0;transform:translateX(-4px);transition:opacity .3s,transform .3s;pointer-events:none;max-width:88px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .card:hover .cbadge-genre{opacity:1;transform:none}
 
+/* Poster zoom hint */
+.cpw-zoom-hint{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(.7);
+  z-index:3;background:rgba(7,7,9,.82);border:1px solid rgba(255,255,255,.18);
+  border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;
+  font-size:18px;opacity:0;pointer-events:none;
+  transition:opacity .28s,transform .28s var(--spring);backdrop-filter:blur(8px);
+}
+.card:hover .cpw-zoom-hint{opacity:1;transform:translate(-50%,-50%) scale(1)}
+
 /* PTW status badge on card */
 .ptw-status-badge{
   position:absolute;bottom:8px;right:8px;z-index:2;
@@ -232,7 +264,7 @@ body::after{
   display:flex;align-items:center;gap:3px;backdrop-filter:blur(4px);
   pointer-events:none;
 }
-.ptw-plan   {background:var(--cyan-dim);  color:var(--cyan);  border:1px solid rgba(0,180,216,.3)}
+.ptw-plan{background:var(--cyan-dim);color:var(--cyan);border:1px solid rgba(0,180,216,.3)}
 
 .cover{position:absolute;inset:0;background:linear-gradient(to top,rgba(7,7,9,1) 0%,rgba(7,7,9,.86) 42%,rgba(7,7,9,0) 100%);opacity:0;transition:opacity .3s;display:flex;flex-direction:column;justify-content:flex-end;padding:12px;border-radius:var(--rad)}
 .card:hover .cover{opacity:1}
@@ -247,7 +279,7 @@ body::after{
 .cov-ptw{background:var(--purple);color:#fff}
 .cov-del{background:rgba(232,23,58,.15);color:var(--red);border:1px solid rgba(232,23,58,.2)}
 
-.clabel{padding:8px 2px 2px;font-size:12px;font-weight:400;color:var(--t1);line-height:1.3;transition:color .2s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;justify-content:space-between}
+.clabel{padding:8px 2px 2px;font-size:12px;font-weight:400;color:var(--t1);line-height:1.3;transition:color .2s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;justify-content:space-between;cursor:pointer}
 .card:hover .clabel{color:var(--t0)}
 .ptw-small{font-size:9px;padding:2px 6px;border-radius:10px;margin-left:6px;flex-shrink:0}
 
@@ -263,6 +295,81 @@ body::after{
 .pgi-a{background:var(--red);color:#fff;border-color:var(--red)}
 .pgi-nav{background:var(--s1);color:var(--t1)}.pgi-nav:hover{background:var(--s2);color:var(--t0)}
 .pgi-off{opacity:.2;pointer-events:none}
+
+/* ── Poster Lightbox ── */
+.plb{
+  display:none;position:fixed;inset:0;z-index:8000;
+  background:rgba(4,4,6,.96);backdrop-filter:blur(32px);-webkit-backdrop-filter:blur(32px);
+  align-items:center;justify-content:center;padding:20px;
+}
+.plb.on{display:flex;animation:plbIn .24s var(--ease)}
+@keyframes plbIn{from{opacity:0}to{opacity:1}}
+.plb-inner{
+  position:relative;max-width:400px;width:100%;
+  animation:plbSlide .3s var(--spring);
+  display:flex;flex-direction:column;align-items:center;
+}
+@keyframes plbSlide{from{transform:scale(.86) translateY(28px);opacity:0}to{transform:none;opacity:1}}
+.plb-img-wrap{
+  position:relative;width:100%;border-radius:16px;
+  box-shadow:0 40px 100px rgba(0,0,0,.95),0 0 0 1px rgba(255,255,255,.09);
+}
+.plb-img{
+  width:100%;display:block;object-fit:contain;max-height:68vh;
+  border-radius:16px;
+}
+.plb-ph{
+  width:100%;aspect-ratio:2/3;background:var(--s2);border-radius:16px;
+  display:flex;align-items:center;justify-content:center;font-size:100px;opacity:.35;
+}
+.plb-close{
+  position:fixed;top:18px;right:18px;width:44px;height:44px;
+  background:rgba(19,19,24,.92);border:1px solid rgba(255,255,255,.18);border-radius:50%;
+  color:#fff;font-size:20px;line-height:1;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .22s var(--ease);box-shadow:0 4px 20px rgba(0,0,0,.8);
+  z-index:8100;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+}
+.plb-close:hover{background:var(--red);color:#fff;border-color:var(--red);transform:scale(1.08)}
+.plb-info{width:100%;text-align:center;margin-top:18px}
+.plb-title{
+  font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;
+  color:var(--t0);line-height:1.1;margin-bottom:7px;
+  text-shadow:0 2px 16px rgba(0,0,0,.6);
+}
+.plb-meta-row{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  font-size:12px;color:var(--t2);margin-bottom:16px;flex-wrap:wrap;
+}
+.plb-meta-dot{color:var(--t2);font-size:10px}
+.plb-meta-rating{
+  display:inline-flex;align-items:center;gap:4px;
+  background:var(--goldsoft);border:1px solid rgba(240,180,41,.2);
+  color:var(--gold);padding:3px 10px;border-radius:4px;
+  font-size:11.5px;font-weight:700;
+}
+.plb-actions{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
+.plb-action{
+  padding:10px 20px;border-radius:9px;font-size:13px;font-weight:600;
+  font-family:'DM Sans',sans-serif;cursor:pointer;text-decoration:none;
+  display:inline-flex;align-items:center;gap:7px;transition:all .22s;border:none;
+  letter-spacing:.2px;
+}
+.plb-view{
+  background:rgba(255,255,255,.1);color:var(--t0);
+  border:1px solid rgba(255,255,255,.18);
+}
+.plb-view:hover{background:rgba(255,255,255,.18);transform:translateY(-1px)}
+.plb-watchlist{
+  background:var(--purple);color:#fff;
+  box-shadow:0 4px 18px rgba(155,93,229,.3);
+}
+.plb-watchlist:hover{background:#8049d4;transform:translateY(-1px)}
+.plb-edit{
+  background:rgba(22,84,219,.15);color:#6fa3ff;
+  border:1px solid rgba(22,84,219,.25);
+}
+.plb-edit:hover{background:rgba(22,84,219,.28);transform:translateY(-1px)}
 
 /* ── Detail Modal ── */
 .modal-bg{display:none;position:fixed;inset:0;z-index:4000;background:rgba(7,7,9,.94);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);justify-content:center;align-items:center;padding:20px}
@@ -304,10 +411,18 @@ body::after{
 .maction-watchlist:hover{background:var(--purple);color:#fff;border-color:var(--purple)}
 .maction-del{background:rgba(232,23,58,.1);color:var(--red);border:1px solid rgba(232,23,58,.2)}
 .maction-del:hover{background:var(--red);color:#fff}
-.mclose{position:absolute;top:14px;left:14px;width:36px;height:36px;border-radius:50%;background:rgba(7,7,9,.8);border:1px solid var(--bhi);color:var(--t1);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;transition:all .2s;backdrop-filter:blur(8px)}
-.mclose:hover{background:var(--red);color:#fff;border-color:var(--red)}
+.mclose{
+  position:fixed;top:18px;left:18px;width:44px;height:44px;
+  border-radius:50%;background:rgba(19,19,24,.92);
+  border:1px solid rgba(255,255,255,.18);color:#fff;font-size:20px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  z-index:4100;transition:all .2s;
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  box-shadow:0 4px 20px rgba(0,0,0,.8);
+}
+.mclose:hover{background:var(--red);color:#fff;border-color:var(--red);transform:scale(1.08)}
 
-/* ── PTW Quick-Add Modal (Plan to Watch Only) ── */
+/* ── PTW Quick-Add Modal ── */
 .ptw-overlay{display:none;position:fixed;inset:0;z-index:7000;background:rgba(7,7,9,.92);backdrop-filter:blur(14px);align-items:center;justify-content:center;padding:20px}
 .ptw-overlay.on{display:flex}
 .ptw-modal{background:var(--s1);border:1px solid var(--bhi);border-radius:20px;width:100%;max-width:440px;padding:32px;animation:mIn .28s var(--spring)}
@@ -345,6 +460,7 @@ footer{text-align:center;padding:38px 5%;border-top:1px solid var(--border);back
   .mbody{padding:16px 18px 22px}
   .mbanner{height:240px}
   .mbanner-content{padding:0 18px 20px}
+  .plb-inner{max-width:320px}
 }
 </style>
 </head>
@@ -359,11 +475,27 @@ footer{text-align:center;padding:38px 5%;border-top:1px solid var(--border);back
     <span class="nav-logo-name">Drama<em>Verse</em></span>
   </a>
   <div class="nav-links">
-    <a href="?" class="active"><i class="fas fa-home"></i> Home</a>
-    <a href="?sort=rating"><i class="fas fa-star"></i> Top Rated</a>
-    <a href="?search=romance"><i class="fas fa-heart"></i> Romance</a>
-    <a href="?search=thriller"><i class="fas fa-bolt"></i> Thriller</a>
-    <a href="plan-to-watch.php"><i class="fas fa-bookmark"></i> Watchlist
+    <a href="?" class="<?= $navHome ? 'active' : '' ?>">
+      <i class="fas fa-home"></i> Home
+    </a>
+   <a href="?search=comedy" class="<?= $navComedy ? 'active' : '' ?>">
+    <i class="fas fa-laugh"></i> Comedy
+</a>
+<a href="?search=action" class="<?= $navAction ? 'active' : '' ?>">
+    <i class="fas fa-bolt"></i> Action
+</a>
+<a href="?search=mystery" class="<?= $navMystery ? 'active' : '' ?>">
+    <i class="fas fa-user-secret"></i> Mystery
+</a>
+
+    <a href="?search=romance" class="<?= $navRomance ? 'active' : '' ?>">
+      <i class="fas fa-heart"></i> Romance
+    </a>
+    <a href="?search=thriller" class="<?= $navThriller ? 'active' : '' ?>">
+      <i class="fas fa-bolt"></i> Thriller
+    </a>
+    <a href="plan-to-watch.php" class="<?= $navWatchlist ? 'active' : '' ?>">
+      <i class="fas fa-bookmark"></i> Watchlist
       <?php
         $ptw_count = $conn->query("SELECT COUNT(*) as c FROM plan_to_watch WHERE status='Plan to Watch'")->fetch_assoc()['c'] ?? 0;
         if($ptw_count > 0): ?>
@@ -409,8 +541,10 @@ footer{text-align:center;padding:38px 5%;border-top:1px solid var(--border);back
 <section class="hero">
   <?php if($featured):
     $img = !empty($featured['image']) ? basename($featured['image']) : '';
-    $imgP = $img ? "img/".$img : "";
-    $hasHero = $imgP && file_exists(__DIR__."/".$imgP);
+    if($img && file_exists(__DIR__."/uploads/".$img))       { $imgP="uploads/".$img; }
+    elseif($img && file_exists(__DIR__."/img/".$img))       { $imgP="img/".$img; }
+    else                                                    { $imgP=""; }
+    $hasHero = !empty($imgP);
   ?>
     <?php if($hasHero): ?>
       <img class="hero-bg" src="<?php echo htmlspecialchars($imgP);?>" alt="">
@@ -519,30 +653,24 @@ footer{text-align:center;padding:38px 5%;border-top:1px solid var(--border);back
   <?php if($result && $result->num_rows>0){
     while($row=$result->fetch_assoc()){
       $img=!empty($row['image'])?basename($row['image']):'';
-      $imgP=$img?"img/".$img:"";
-      $hasImg=$imgP&&file_exists(__DIR__."/".$imgP);
+      // Check uploads/ first (new), then img/ (legacy)
+      if($img && file_exists(__DIR__."/uploads/".$img))       { $imgP="uploads/".$img; }
+      elseif($img && file_exists(__DIR__."/img/".$img))       { $imgP="img/".$img; }
+      else                                                    { $imgP=""; }
+      $hasImg=!empty($imgP);
       $tj=addslashes(htmlspecialchars($row['title']));
       $gj=addslashes(htmlspecialchars($row['genre']));
       $ij=addslashes(htmlspecialchars($imgP));
       $fg=trim(explode(',',$row['genre'])[0]);
-      // Check if this drama is in plan-to-watch
       $ptwStatus = $ptw_map[strtolower(trim($row['title']))] ?? null;
-      $ptwClass = match($ptwStatus) {
-        'Plan to Watch'      => 'ptw-plan',
-        default              => ''
-      };
-      $ptwIcon = match($ptwStatus) {
-        'Plan to Watch'      => '🕐',
-        default              => ''
-      };
-      $ptwShort = match($ptwStatus) {
-        'Plan to Watch'      => 'Planning',
-        default              => ''
-      };
+      $ptwClass = $ptwStatus === 'Plan to Watch' ? 'ptw-plan' : '';
+      $ptwIcon  = $ptwStatus === 'Plan to Watch' ? '🕐' : '';
+      $ptwShort = $ptwStatus === 'Plan to Watch' ? 'Planning' : '';
   ?>
-    <div class="card"
-      onclick="openModal('<?php echo $ij;?>','<?php echo $tj;?>','<?php echo $gj;?>','<?php echo $row['rating'];?>','<?php echo $row['episodes'];?>','<?php echo $row['released_year'];?>','<?php echo $row['id'];?>')">
-      <div class="cpw">
+    <div class="card">
+      <!-- Poster area — opens lightbox -->
+      <div class="cpw"
+        onclick="openPLB('<?php echo $ij;?>','<?php echo $tj;?>','<?php echo $gj;?>','<?php echo $row['rating'];?>','<?php echo $row['episodes'];?>','<?php echo $row['released_year'];?>','<?php echo $row['id'];?>')">
         <?php if($hasImg): ?>
           <img class="cposter" src="<?php echo htmlspecialchars($imgP);?>" alt="<?php echo htmlspecialchars($row['title']);?>" loading="lazy">
         <?php else: ?>
@@ -550,6 +678,7 @@ footer{text-align:center;padding:38px 5%;border-top:1px solid var(--border);back
         <?php endif; ?>
         <div class="cbadge-rating">⭐ <?php echo $row['rating'];?></div>
         <div class="cbadge-genre"><?php echo htmlspecialchars($fg);?></div>
+        <div class="cpw-zoom-hint">🔍</div>
         <?php if($ptwStatus): ?>
         <div class="ptw-status-badge <?php echo $ptwClass; ?>"><?php echo $ptwIcon; ?> <?php echo $ptwShort; ?></div>
         <?php endif; ?>
@@ -567,7 +696,9 @@ footer{text-align:center;padding:38px 5%;border-top:1px solid var(--border);back
           </div>
         </div>
       </div>
-      <div class="clabel">
+      <!-- Label area — opens full detail modal -->
+      <div class="clabel"
+        onclick="openModal('<?php echo $ij;?>','<?php echo $tj;?>','<?php echo $gj;?>','<?php echo $row['rating'];?>','<?php echo $row['episodes'];?>','<?php echo $row['released_year'];?>','<?php echo $row['id'];?>')">
         <span style="overflow:hidden;text-overflow:ellipsis"><?php echo htmlspecialchars($row['title']);?></span>
         <?php if($ptwStatus): ?>
         <span class="ptw-small <?php echo $ptwClass; ?>"><?php echo $ptwIcon; ?></span>
@@ -647,12 +778,37 @@ footer{text-align:center;padding:38px 5%;border-top:1px solid var(--border);back
   </div>
 </div>
 
-<!-- PTW QUICK-ADD MODAL (Plan to Watch Only) -->
+<!-- POSTER LIGHTBOX -->
+<div class="plb" id="posterLightbox" onclick="closePLBOnBg(event)">
+  <button class="plb-close" onclick="closePLBDirect()">×</button>
+  <div class="plb-inner">
+    <div class="plb-img-wrap">
+      <img id="plbImg" class="plb-img" src="" alt="" style="display:none">
+      <div id="plbPh" class="plb-ph">🎭</div>
+    </div>
+    <div class="plb-info">
+      <div class="plb-title" id="plbTitle"></div>
+      <div class="plb-meta-row">
+        <span id="plbYear"></span>
+        <span class="plb-meta-dot">·</span>
+        <span id="plbEps"></span>
+        <span class="plb-meta-dot">·</span>
+        <span class="plb-meta-rating" id="plbRating"></span>
+      </div>
+      <div class="plb-actions">
+        <button class="plb-action plb-view" id="plbDetailBtn">▶ View Details</button>
+        <button class="plb-action plb-watchlist" id="plbWatchBtn"><i class="fas fa-bookmark"></i> Watchlist</button>
+        <a class="plb-action plb-edit" id="plbEditBtn" href="#">✏ Edit</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PTW QUICK-ADD MODAL -->
 <div class="ptw-overlay" id="ptwOverlay" onclick="closePTWOnBg(event)">
   <div class="ptw-modal">
     <h3><i class="fas fa-bookmark"></i> Add to Watchlist</h3>
     <div class="ptw-drama-name" id="ptwDramaName"></div>
-
     <div class="ptw-prio">
       <label>Priority</label>
       <select id="ptwPriority">
@@ -661,7 +817,6 @@ footer{text-align:center;padding:38px 5%;border-top:1px solid var(--border);back
         <option value="Low">🔵 Low — Someday</option>
       </select>
     </div>
-
     <div class="ptw-actions">
       <button class="ptw-cancel" onclick="closePTW()">Cancel</button>
       <button class="ptw-confirm" onclick="submitPTW()">
@@ -713,6 +868,52 @@ function showToast(message, type='success'){
   setTimeout(()=>t.remove(),4000);
 }
 
+/* ── Poster Lightbox ── */
+let _plbData = {};
+
+function openPLB(src, title, genre, rating, eps, year, id) {
+  _plbData = {src, title, genre, rating, eps, year, id};
+
+  const img = document.getElementById('plbImg');
+  const ph  = document.getElementById('plbPh');
+
+  if(src && src !== 'img/' && src !== '' && src !== 'img/') {
+    img.src = src;
+    img.style.display = 'block';
+    ph.style.display  = 'none';
+  } else {
+    img.style.display = 'none';
+    ph.style.display  = 'flex';
+  }
+
+  document.getElementById('plbTitle').textContent   = title;
+  document.getElementById('plbYear').textContent    = year;
+  document.getElementById('plbEps').textContent     = eps + ' episodes';
+  document.getElementById('plbRating').textContent  = '⭐ ' + rating + '/10';
+
+  document.getElementById('plbDetailBtn').onclick = function() {
+    closePLBDirect();
+    openModal(src, title, genre, rating, eps, year, id);
+  };
+  document.getElementById('plbWatchBtn').onclick = function() {
+    closePLBDirect();
+    openPTW(title, genre);
+  };
+  document.getElementById('plbEditBtn').href = 'edit.php?id=' + id;
+
+  document.getElementById('posterLightbox').classList.add('on');
+  document.body.style.overflow = 'hidden';
+}
+
+function closePLBOnBg(e) {
+  if(e.target === document.getElementById('posterLightbox')) closePLBDirect();
+}
+
+function closePLBDirect() {
+  document.getElementById('posterLightbox').classList.remove('on');
+  document.body.style.overflow = '';
+}
+
 /* ── Detail Modal ── */
 function openModal(src,title,genre,rating,eps,year,id){
   const bi=document.getElementById('mbannerImg'),bp=document.getElementById('mbannerPh');
@@ -735,12 +936,13 @@ function openModal(src,title,genre,rating,eps,year,id){
   document.getElementById('modal-bg').classList.add('on');
   document.body.style.overflow='hidden';
 }
+
 function closeModal(){
   document.getElementById('modal-bg').classList.remove('on');
   document.body.style.overflow='';
 }
 
-/* ── PTW Modal (Simplified - Plan to Watch only) ── */
+/* ── PTW Modal ── */
 let _ptwTitle='', _ptwGenre='';
 
 function openPTW(title, genre=''){
@@ -759,7 +961,6 @@ function submitPTW(){
   document.getElementById('ptwFormTitle').value    = _ptwTitle;
   document.getElementById('ptwFormGenre').value    = _ptwGenre;
   document.getElementById('ptwFormPriority').value = document.getElementById('ptwPriority').value;
-  // Status is always "Plan to Watch"
   closePTW();
   showToast(`"${_ptwTitle}" added to your watchlist!`, 'success');
   setTimeout(()=>document.getElementById('ptwForm').submit(), 900);
@@ -779,7 +980,7 @@ document.getElementById('sovInput').addEventListener('input',syncClear);
 
 /* ── Keyboard shortcuts ── */
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'){closeModal();closeSov();closePTW();}
+  if(e.key==='Escape'){closeModal();closeSov();closePTW();closePLBDirect();}
   if(e.key==='/'&&!document.getElementById('sov').classList.contains('on')){
     const t=document.activeElement.tagName.toLowerCase();
     if(t!=='input'&&t!=='textarea'){e.preventDefault();openSov();}

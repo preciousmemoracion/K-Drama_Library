@@ -525,6 +525,7 @@ footer{text-align:center;padding:38px 5%;border-top:1px solid var(--border);back
     <a href="?" class="<?= $navHome ? 'active' : '' ?>">
       <i class="fas fa-home"></i> Home
     </a>
+     <a href="about.php"><i class="fas fa-info-circle"></i> About</a>  <!-- ← ADD THIS LINE -->
     <a href="?search=comedy" class="<?= $navComedy ? 'active' : '' ?>">
       <i class="fas fa-laugh"></i> Comedy
     </a>
@@ -542,7 +543,7 @@ footer{text-align:center;padding:38px 5%;border-top:1px solid var(--border);back
     </a>
     <a href="plan-to-watch.php" class="<?= $navWatchlist ? 'active' : '' ?>">
       <i class="fas fa-bookmark"></i> Watchlist
-        <a href="about.php"><i class="fas fa-info-circle"></i> About</a>  <!-- ← ADD THIS LINE -->
+      
 
       <?php
         $ptw_count = $conn->query("SELECT COUNT(*) as c FROM plan_to_watch WHERE status='Plan to Watch'")->fetch_assoc()['c'] ?? 0;

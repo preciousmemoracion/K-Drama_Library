@@ -30,6 +30,29 @@ $stats = $avg_result ? $avg_result->fetch_assoc() : ['avg_r'=>0,'total'=>0,'late
 $genre_result = $conn->query("SELECT COUNT(DISTINCT genre) as c FROM dramas");
 $gc = $genre_result ? $genre_result->fetch_assoc()['c'] : '—';
 
+// Fetch ALL dramas for hero slideshow (top 50 by rating)
+$slide_dramas = [];
+$slide_q = $conn->query("SELECT * FROM dramas ORDER BY rating DESC LIMIT 50");
+if ($slide_q) {
+    while ($r = $slide_q->fetch_assoc()) {
+        $img = !empty($r['image']) ? basename($r['image']) : '';
+        if ($img && file_exists(__DIR__."/uploads/".$img))      { $imgP = "uploads/".$img; }
+        elseif ($img && file_exists(__DIR__."/img/".$img))      { $imgP = "img/".$img; }
+        else                                                    { $imgP = ""; }
+        $genres = array_map('trim', explode(',', $r['genre']));
+        $slide_dramas[] = [
+            'id'    => $r['id'],
+            'title' => $r['title'],
+            'genre' => $r['genre'],
+            'genres'=> array_slice($genres, 0, 2),
+            'rating'=> $r['rating'],
+            'year'  => $r['released_year'],
+            'eps'   => $r['episodes'],
+            'img'   => $imgP,
+        ];
+    }
+}
+
 // Fetch plan-to-watch status for each drama (keyed by drama title match)
 $ptw_map = [];
 $ptw_q = $conn->query("SELECT drama_title, status FROM plan_to_watch");
@@ -40,6 +63,9 @@ $navHome    = !isset($_GET['search']) && !isset($_GET['sort']);
 $navRating  = !empty($_GET['sort']) && $_GET['sort'] === 'rating' && empty($search);
 $navRomance = strtolower($search) === 'romance';
 $navThriller = strtolower($search) === 'thriller';
+$navComedy   = strtolower($search) === 'comedy';
+$navAction   = strtolower($search) === 'action';
+$navMystery  = strtolower($search) === 'mystery';
 $navWatchlist = basename($_SERVER['PHP_SELF']) === 'plan-to-watch.php';
 ?>
 <!DOCTYPE html>
@@ -158,17 +184,54 @@ body::after{
 .sov-esc{text-align:center;margin-top:18px;font-size:11.5px;color:var(--t2)}
 .sov-esc kbd{padding:2px 7px;background:var(--s2);border:1px solid var(--bhi);border-radius:4px;font-family:monospace;font-size:11px}
 
-/* ── Hero ── */
-.hero{position:relative;height:100vh;min-height:620px;overflow:hidden;display:flex;align-items:flex-end}
-.hero-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 18%;filter:brightness(.45) saturate(1.2);transform:scale(1.06);animation:hzoom 16s var(--ease) forwards}
-@keyframes hzoom{to{transform:scale(1)}}
-.hero-grad{position:absolute;inset:0;z-index:1;background:linear-gradient(to bottom,rgba(7,7,9,.85) 0%,rgba(7,7,9,0) 16%,rgba(7,7,9,0) 40%,rgba(7,7,9,.7) 65%,rgba(7,7,9,.97) 87%,var(--ink) 100%),linear-gradient(110deg,rgba(7,7,9,.96) 0%,rgba(7,7,9,.55) 40%,rgba(7,7,9,0) 62%)}
-.hero-placeholder{position:absolute;inset:0;background:radial-gradient(ellipse at 60% 30%,#1c0a34,#07070e);display:flex;align-items:center;justify-content:center;font-size:120px;opacity:.35}
+/* ══════════════════════════════════════
+   HERO SLIDESHOW
+══════════════════════════════════════ */
+.hero{
+  position:relative;height:100vh;min-height:620px;
+  overflow:hidden;display:flex;align-items:flex-end;
+}
+
+/* Background layers – two slots that crossfade */
+.hero-bg-layer{
+  position:absolute;inset:0;width:100%;height:100%;
+  object-fit:cover;object-position:center 18%;
+  filter:brightness(.45) saturate(1.2);
+  transition:opacity 1.2s ease;
+  background:radial-gradient(ellipse at 60% 30%,#1c0a34,#07070e);
+}
+.hero-bg-layer.slot-a{ z-index:0; }
+.hero-bg-layer.slot-b{ z-index:0; opacity:0; }
+
+/* Crossfade: when b is "active" fade b in, fade a out */
+.hero.show-b .hero-bg-layer.slot-b{ opacity:1; }
+.hero.show-b .hero-bg-layer.slot-a{ opacity:0; }
+
+.hero-grad{
+  position:absolute;inset:0;z-index:1;
+  background:
+    linear-gradient(to bottom,rgba(7,7,9,.85) 0%,rgba(7,7,9,0) 16%,rgba(7,7,9,0) 40%,rgba(7,7,9,.7) 65%,rgba(7,7,9,.97) 87%,var(--ink) 100%),
+    linear-gradient(110deg,rgba(7,7,9,.96) 0%,rgba(7,7,9,.55) 40%,rgba(7,7,9,0) 62%);
+}
+
 .particles{position:absolute;inset:0;z-index:1;pointer-events:none;overflow:hidden}
 .p{position:absolute;border-radius:50%;background:rgba(255,255,255,.45);animation:pfloat linear infinite}
 @keyframes pfloat{0%{transform:translateY(100vh) scale(0);opacity:0}10%{opacity:.5}90%{opacity:.2}100%{transform:translateY(-10vh) scale(1);opacity:0}}
-.hero-content{position:relative;z-index:3;padding:0 5% 90px;max-width:600px;animation:hcIn .9s var(--ease) .1s both}
-@keyframes hcIn{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:none}}
+
+.hero-content{
+  position:relative;z-index:3;
+  padding:0 5% 90px;max-width:600px;
+}
+
+/* Content transitions */
+.hero-content-inner{
+  transition:opacity .55s ease, transform .55s var(--ease);
+}
+.hero-content-inner.fading{
+  opacity:0;
+  transform:translateY(14px);
+}
+
 .hero-badge-row{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap}
 .hero-badge{display:inline-flex;align-items:center;gap:5px;background:var(--red);color:#fff;padding:4px 12px;border-radius:4px;font-size:9.5px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;box-shadow:0 4px 14px var(--redglow)}
 .hero-tag{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.72);padding:4px 11px;border-radius:4px;font-size:9.5px;font-weight:500;letter-spacing:.8px;text-transform:uppercase}
@@ -186,9 +249,56 @@ body::after{
 .btn-ghost:hover{background:rgba(255,255,255,.12);transform:translateY(-1px)}
 .btn-watchlist{display:inline-flex;align-items:center;gap:8px;background:var(--purple-dim);border:1px solid rgba(155,93,229,.3);color:var(--purple);padding:13px 22px;border-radius:9px;font-size:13.5px;font-weight:600;font-family:'DM Sans',sans-serif;text-decoration:none;cursor:pointer;transition:all .22s}
 .btn-watchlist:hover{background:var(--purple);color:#fff;transform:translateY(-1px);box-shadow:0 8px 22px rgba(155,93,229,.3)}
+
 .hero-scroll{position:absolute;bottom:64px;left:50%;transform:translateX(-50%);z-index:3;display:flex;flex-direction:column;align-items:center;gap:5px;font-size:9.5px;letter-spacing:2px;text-transform:uppercase;color:var(--t2);animation:bob 2.6s ease-in-out infinite}
 @keyframes bob{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-5px)}}
 .scroll-track{width:1px;height:32px;background:linear-gradient(to bottom,transparent,var(--t2))}
+
+/* ── Slideshow controls ── */
+.hero-controls{
+  position:absolute;bottom:32px;right:5%;z-index:4;
+  display:flex;align-items:center;gap:10px;
+}
+
+/* Dot indicators */
+.hero-dots{
+  display:flex;align-items:center;gap:5px;flex-wrap:wrap;max-width:220px;
+}
+.hero-dot-btn{
+  width:6px;height:6px;border-radius:50%;
+  background:rgba(255,255,255,.28);border:none;cursor:pointer;
+  transition:all .35s var(--ease);flex-shrink:0;padding:0;
+}
+.hero-dot-btn.active{
+  width:22px;border-radius:3px;
+  background:var(--red);box-shadow:0 0 8px var(--redglow);
+}
+
+/* Prev / Next arrows */
+.hero-arrow{
+  width:38px;height:38px;border-radius:50%;
+  background:rgba(13,13,18,.72);border:1px solid rgba(255,255,255,.15);
+  color:#fff;font-size:16px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  backdrop-filter:blur(8px);transition:all .22s;
+}
+.hero-arrow:hover{background:var(--red);border-color:var(--red)}
+
+/* Slide counter */
+.hero-counter{
+  font-size:11px;color:var(--t2);font-weight:500;white-space:nowrap;
+}
+
+/* Progress bar */
+.hero-progress{
+  position:absolute;top:0;left:0;right:0;height:2px;z-index:4;
+  background:transparent;overflow:hidden;
+}
+.hero-progress-bar{
+  height:100%;background:var(--red);
+  width:0%;
+  box-shadow:0 0 6px var(--redglow);
+}
 
 /* ── Stats Ribbon ── */
 .stats-ribbon{display:grid;grid-template-columns:repeat(4,1fr);background:var(--s1);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
@@ -211,6 +321,8 @@ body::after{
 .sort-btn{padding:6px 14px;border-radius:7px;font-size:12px;font-family:'DM Sans',sans-serif;border:1px solid var(--border);background:transparent;color:var(--t1);cursor:pointer;transition:all .2s;text-decoration:none;display:inline-block}
 .sort-btn:hover{background:var(--s2);border-color:var(--bhi);color:var(--t0)}
 .sort-btn.active{background:var(--red);border-color:var(--red);color:#fff}
+
+/* ── Search results banner (no duplicate search btn) ── */
 .srb{margin:88px 0 32px;border-radius:var(--rad);overflow:hidden}
 .srb-inner{background:var(--s1);border:1px solid var(--bhi);border-radius:var(--rad);padding:24px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .srb-h2{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--t1);margin-bottom:4px}
@@ -218,8 +330,6 @@ body::after{
 .srb-p{font-size:12px;color:var(--t2)}
 .srb-btns{display:flex;gap:8px}
 .srb-btn{padding:8px 16px;border-radius:8px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;gap:5px}
-.srb-btn-a{background:var(--s3);border:1px solid var(--bhi);color:var(--t1)}
-.srb-btn-a:hover{background:rgba(255,255,255,.07);color:var(--t0)}
 .srb-btn-b{background:transparent;border:1px solid var(--border);color:var(--t2)}
 .srb-btn-b:hover{border-color:var(--bhi);color:var(--t1)}
 
@@ -246,8 +356,6 @@ body::after{
 .card:hover .cbadge-rating{opacity:0;transform:scale(.75)}
 .cbadge-genre{position:absolute;top:8px;left:8px;z-index:2;background:var(--red);color:#fff;font-size:7.5px;font-weight:700;padding:3px 9px;border-radius:4px;letter-spacing:.9px;text-transform:uppercase;opacity:0;transform:translateX(-4px);transition:opacity .3s,transform .3s;pointer-events:none;max-width:88px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .card:hover .cbadge-genre{opacity:1;transform:none}
-
-/* Poster zoom hint */
 .cpw-zoom-hint{
   position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(.7);
   z-index:3;background:rgba(7,7,9,.82);border:1px solid rgba(255,255,255,.18);
@@ -256,8 +364,6 @@ body::after{
   transition:opacity .28s,transform .28s var(--spring);backdrop-filter:blur(8px);
 }
 .card:hover .cpw-zoom-hint{opacity:1;transform:translate(-50%,-50%) scale(1)}
-
-/* PTW status badge on card */
 .ptw-status-badge{
   position:absolute;bottom:8px;right:8px;z-index:2;
   font-size:9px;font-weight:700;padding:3px 7px;border-radius:4px;
@@ -265,7 +371,6 @@ body::after{
   pointer-events:none;
 }
 .ptw-plan{background:var(--cyan-dim);color:var(--cyan);border:1px solid rgba(0,180,216,.3)}
-
 .cover{position:absolute;inset:0;background:linear-gradient(to top,rgba(7,7,9,1) 0%,rgba(7,7,9,.86) 42%,rgba(7,7,9,0) 100%);opacity:0;transition:opacity .3s;display:flex;flex-direction:column;justify-content:flex-end;padding:12px;border-radius:var(--rad)}
 .card:hover .cover{opacity:1}
 .cov-title{font-size:11.5px;font-weight:600;color:#fff;line-height:1.3;margin-bottom:5px}
@@ -278,11 +383,9 @@ body::after{
 .cov-edit{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.18)}
 .cov-ptw{background:var(--purple);color:#fff}
 .cov-del{background:rgba(232,23,58,.15);color:var(--red);border:1px solid rgba(232,23,58,.2)}
-
 .clabel{padding:8px 2px 2px;font-size:12px;font-weight:400;color:var(--t1);line-height:1.3;transition:color .2s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;justify-content:space-between;cursor:pointer}
 .card:hover .clabel{color:var(--t0)}
 .ptw-small{font-size:9px;padding:2px 6px;border-radius:10px;margin-left:6px;flex-shrink:0}
-
 .empty{grid-column:1/-1;text-align:center;padding:90px 20px}
 .empty-i{font-size:70px;opacity:.3;margin-bottom:16px}
 .empty-t{font-family:'Cormorant Garamond',serif;font-size:28px;color:var(--t1);margin-bottom:6px}
@@ -297,78 +400,28 @@ body::after{
 .pgi-off{opacity:.2;pointer-events:none}
 
 /* ── Poster Lightbox ── */
-.plb{
-  display:none;position:fixed;inset:0;z-index:8000;
-  background:rgba(4,4,6,.96);backdrop-filter:blur(32px);-webkit-backdrop-filter:blur(32px);
-  align-items:center;justify-content:center;padding:20px;
-}
+.plb{display:none;position:fixed;inset:0;z-index:8000;background:rgba(4,4,6,.96);backdrop-filter:blur(32px);-webkit-backdrop-filter:blur(32px);align-items:center;justify-content:center;padding:20px;}
 .plb.on{display:flex;animation:plbIn .24s var(--ease)}
 @keyframes plbIn{from{opacity:0}to{opacity:1}}
-.plb-inner{
-  position:relative;max-width:400px;width:100%;
-  animation:plbSlide .3s var(--spring);
-  display:flex;flex-direction:column;align-items:center;
-}
+.plb-inner{position:relative;max-width:400px;width:100%;animation:plbSlide .3s var(--spring);display:flex;flex-direction:column;align-items:center;}
 @keyframes plbSlide{from{transform:scale(.86) translateY(28px);opacity:0}to{transform:none;opacity:1}}
-.plb-img-wrap{
-  position:relative;width:100%;border-radius:16px;
-  box-shadow:0 40px 100px rgba(0,0,0,.95),0 0 0 1px rgba(255,255,255,.09);
-}
-.plb-img{
-  width:100%;display:block;object-fit:contain;max-height:68vh;
-  border-radius:16px;
-}
-.plb-ph{
-  width:100%;aspect-ratio:2/3;background:var(--s2);border-radius:16px;
-  display:flex;align-items:center;justify-content:center;font-size:100px;opacity:.35;
-}
-.plb-close{
-  position:fixed;top:18px;right:18px;width:44px;height:44px;
-  background:rgba(19,19,24,.92);border:1px solid rgba(255,255,255,.18);border-radius:50%;
-  color:#fff;font-size:20px;line-height:1;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  transition:all .22s var(--ease);box-shadow:0 4px 20px rgba(0,0,0,.8);
-  z-index:8100;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
-}
+.plb-img-wrap{position:relative;width:100%;border-radius:16px;box-shadow:0 40px 100px rgba(0,0,0,.95),0 0 0 1px rgba(255,255,255,.09);}
+.plb-img{width:100%;display:block;object-fit:contain;max-height:68vh;border-radius:16px;}
+.plb-ph{width:100%;aspect-ratio:2/3;background:var(--s2);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:100px;opacity:.35;}
+.plb-close{position:fixed;top:18px;right:18px;width:44px;height:44px;background:rgba(19,19,24,.92);border:1px solid rgba(255,255,255,.18);border-radius:50%;color:#fff;font-size:20px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .22s var(--ease);box-shadow:0 4px 20px rgba(0,0,0,.8);z-index:8100;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);}
 .plb-close:hover{background:var(--red);color:#fff;border-color:var(--red);transform:scale(1.08)}
 .plb-info{width:100%;text-align:center;margin-top:18px}
-.plb-title{
-  font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;
-  color:var(--t0);line-height:1.1;margin-bottom:7px;
-  text-shadow:0 2px 16px rgba(0,0,0,.6);
-}
-.plb-meta-row{
-  display:flex;align-items:center;justify-content:center;gap:8px;
-  font-size:12px;color:var(--t2);margin-bottom:16px;flex-wrap:wrap;
-}
+.plb-title{font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;color:var(--t0);line-height:1.1;margin-bottom:7px;text-shadow:0 2px 16px rgba(0,0,0,.6);}
+.plb-meta-row{display:flex;align-items:center;justify-content:center;gap:8px;font-size:12px;color:var(--t2);margin-bottom:16px;flex-wrap:wrap;}
 .plb-meta-dot{color:var(--t2);font-size:10px}
-.plb-meta-rating{
-  display:inline-flex;align-items:center;gap:4px;
-  background:var(--goldsoft);border:1px solid rgba(240,180,41,.2);
-  color:var(--gold);padding:3px 10px;border-radius:4px;
-  font-size:11.5px;font-weight:700;
-}
+.plb-meta-rating{display:inline-flex;align-items:center;gap:4px;background:var(--goldsoft);border:1px solid rgba(240,180,41,.2);color:var(--gold);padding:3px 10px;border-radius:4px;font-size:11.5px;font-weight:700;}
 .plb-actions{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
-.plb-action{
-  padding:10px 20px;border-radius:9px;font-size:13px;font-weight:600;
-  font-family:'DM Sans',sans-serif;cursor:pointer;text-decoration:none;
-  display:inline-flex;align-items:center;gap:7px;transition:all .22s;border:none;
-  letter-spacing:.2px;
-}
-.plb-view{
-  background:rgba(255,255,255,.1);color:var(--t0);
-  border:1px solid rgba(255,255,255,.18);
-}
+.plb-action{padding:10px 20px;border-radius:9px;font-size:13px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:7px;transition:all .22s;border:none;letter-spacing:.2px;}
+.plb-view{background:rgba(255,255,255,.1);color:var(--t0);border:1px solid rgba(255,255,255,.18);}
 .plb-view:hover{background:rgba(255,255,255,.18);transform:translateY(-1px)}
-.plb-watchlist{
-  background:var(--purple);color:#fff;
-  box-shadow:0 4px 18px rgba(155,93,229,.3);
-}
+.plb-watchlist{background:var(--purple);color:#fff;box-shadow:0 4px 18px rgba(155,93,229,.3);}
 .plb-watchlist:hover{background:#8049d4;transform:translateY(-1px)}
-.plb-edit{
-  background:rgba(22,84,219,.15);color:#6fa3ff;
-  border:1px solid rgba(22,84,219,.25);
-}
+.plb-edit{background:rgba(22,84,219,.15);color:#6fa3ff;border:1px solid rgba(22,84,219,.25);}
 .plb-edit:hover{background:rgba(22,84,219,.28);transform:translateY(-1px)}
 
 /* ── Detail Modal ── */
@@ -411,15 +464,7 @@ body::after{
 .maction-watchlist:hover{background:var(--purple);color:#fff;border-color:var(--purple)}
 .maction-del{background:rgba(232,23,58,.1);color:var(--red);border:1px solid rgba(232,23,58,.2)}
 .maction-del:hover{background:var(--red);color:#fff}
-.mclose{
-  position:fixed;top:18px;left:18px;width:44px;height:44px;
-  border-radius:50%;background:rgba(19,19,24,.92);
-  border:1px solid rgba(255,255,255,.18);color:#fff;font-size:20px;
-  cursor:pointer;display:flex;align-items:center;justify-content:center;
-  z-index:4100;transition:all .2s;
-  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
-  box-shadow:0 4px 20px rgba(0,0,0,.8);
-}
+.mclose{position:fixed;top:18px;left:18px;width:44px;height:44px;border-radius:50%;background:rgba(19,19,24,.92);border:1px solid rgba(255,255,255,.18);color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:4100;transition:all .2s;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 4px 20px rgba(0,0,0,.8);}
 .mclose:hover{background:var(--red);color:#fff;border-color:var(--red);transform:scale(1.08)}
 
 /* ── PTW Quick-Add Modal ── */
@@ -461,6 +506,8 @@ footer{text-align:center;padding:38px 5%;border-top:1px solid var(--border);back
   .mbanner{height:240px}
   .mbanner-content{padding:0 18px 20px}
   .plb-inner{max-width:320px}
+  .hero-controls{bottom:20px;right:3%}
+  .hero-dots{max-width:160px}
 }
 </style>
 </head>
@@ -478,16 +525,15 @@ footer{text-align:center;padding:38px 5%;border-top:1px solid var(--border);back
     <a href="?" class="<?= $navHome ? 'active' : '' ?>">
       <i class="fas fa-home"></i> Home
     </a>
-   <a href="?search=comedy" class="<?= $navComedy ? 'active' : '' ?>">
-    <i class="fas fa-laugh"></i> Comedy
-</a>
-<a href="?search=action" class="<?= $navAction ? 'active' : '' ?>">
-    <i class="fas fa-bolt"></i> Action
-</a>
-<a href="?search=mystery" class="<?= $navMystery ? 'active' : '' ?>">
-    <i class="fas fa-user-secret"></i> Mystery
-</a>
-
+    <a href="?search=comedy" class="<?= $navComedy ? 'active' : '' ?>">
+      <i class="fas fa-laugh"></i> Comedy
+    </a>
+    <a href="?search=action" class="<?= $navAction ? 'active' : '' ?>">
+      <i class="fas fa-bolt"></i> Action
+    </a>
+    <a href="?search=mystery" class="<?= $navMystery ? 'active' : '' ?>">
+      <i class="fas fa-user-secret"></i> Mystery
+    </a>
     <a href="?search=romance" class="<?= $navRomance ? 'active' : '' ?>">
       <i class="fas fa-heart"></i> Romance
     </a>
@@ -496,6 +542,8 @@ footer{text-align:center;padding:38px 5%;border-top:1px solid var(--border);back
     </a>
     <a href="plan-to-watch.php" class="<?= $navWatchlist ? 'active' : '' ?>">
       <i class="fas fa-bookmark"></i> Watchlist
+        <a href="about.php"><i class="fas fa-info-circle"></i> About</a>  <!-- ← ADD THIS LINE -->
+
       <?php
         $ptw_count = $conn->query("SELECT COUNT(*) as c FROM plan_to_watch WHERE status='Plan to Watch'")->fetch_assoc()['c'] ?? 0;
         if($ptw_count > 0): ?>
@@ -537,71 +585,54 @@ footer{text-align:center;padding:38px 5%;border-top:1px solid var(--border);back
 </div>
 
 <?php if(empty($search)): ?>
-<!-- HERO -->
-<section class="hero">
-  <?php if($featured):
-    $img = !empty($featured['image']) ? basename($featured['image']) : '';
-    if($img && file_exists(__DIR__."/uploads/".$img))       { $imgP="uploads/".$img; }
-    elseif($img && file_exists(__DIR__."/img/".$img))       { $imgP="img/".$img; }
-    else                                                    { $imgP=""; }
-    $hasHero = !empty($imgP);
-  ?>
-    <?php if($hasHero): ?>
-      <img class="hero-bg" src="<?php echo htmlspecialchars($imgP);?>" alt="">
-    <?php else: ?>
-      <div class="hero-placeholder">🎭</div>
-    <?php endif; ?>
-    <div class="particles" id="particles"></div>
-    <div class="hero-grad"></div>
-    <div class="hero-content">
-      <div class="hero-badge-row">
-        <span class="hero-badge">★ Top Rated</span>
-        <?php foreach(array_slice(explode(',',$featured['genre']),0,2) as $g): ?>
-        <span class="hero-tag"><?php echo trim(htmlspecialchars($g));?></span>
-        <?php endforeach; ?>
+<!-- ══════════════════════════════════
+     HERO — SLIDESHOW
+══════════════════════════════════ -->
+<section class="hero" id="heroSection">
+
+  <!-- Two background slots for crossfade -->
+  <img class="hero-bg-layer slot-a" id="heroBgA" src="" alt="">
+  <img class="hero-bg-layer slot-b" id="heroBgB" src="" alt="">
+
+  <div class="particles" id="particles"></div>
+  <div class="hero-grad"></div>
+
+  <!-- Progress bar -->
+  <div class="hero-progress"><div class="hero-progress-bar" id="heroProgress"></div></div>
+
+  <!-- Content -->
+  <div class="hero-content">
+    <div class="hero-content-inner" id="heroContentInner">
+      <div class="hero-badge-row" id="heroBadgeRow">
+        <span class="hero-badge" id="heroBadge">★ Top Rated</span>
+        <span class="hero-tag" id="heroTag1"></span>
+        <span class="hero-tag" id="heroTag2" style="display:none"></span>
       </div>
-      <?php
-        $words = explode(' ', $featured['title']);
-        $mid = ceil(count($words)/2);
-        $line1 = implode(' ', array_slice($words,0,$mid));
-        $line2 = implode(' ', array_slice($words,$mid));
-      ?>
-      <h1 class="hero-title">
-        <?php echo htmlspecialchars($line1);?>
-        <?php if($line2): ?><em><?php echo htmlspecialchars($line2);?></em><?php endif; ?>
-      </h1>
+      <h1 class="hero-title" id="heroTitle"></h1>
       <div class="hero-meta">
-        <span class="hero-rating">⭐ <?php echo $featured['rating'];?>/10</span>
+        <span class="hero-rating" id="heroRating">⭐ —</span>
         <span class="hero-dot">·</span>
-        <span class="hero-info"><?php echo $featured['released_year'];?></span>
+        <span class="hero-info" id="heroYear">—</span>
         <span class="hero-dot">·</span>
-        <span class="hero-info"><?php echo $featured['episodes'];?> Episodes</span>
+        <span class="hero-info" id="heroEps">—</span>
       </div>
-      <p class="hero-desc">The crown jewel of your collection — this drama commands your attention from the very first scene.</p>
-      <div class="hero-cta">
-        <button class="btn-main"
-          onclick="openModal('<?php echo addslashes(htmlspecialchars($imgP));?>','<?php echo addslashes(htmlspecialchars($featured['title']));?>','<?php echo addslashes(htmlspecialchars($featured['genre']));?>','<?php echo $featured['rating'];?>','<?php echo $featured['episodes'];?>','<?php echo $featured['released_year'];?>','<?php echo $featured['id'];?>')">
-          ▶ View Details
-        </button>
-        <button class="btn-watchlist" onclick="openPTW('<?php echo addslashes(htmlspecialchars($featured['title']));?>')">
-          <i class="fas fa-bookmark"></i> Add to Watchlist
-        </button>
-        <a href="edit.php?id=<?php echo $featured['id'];?>" class="btn-ghost">✏ Edit</a>
-      </div>
+      <p class="hero-desc" id="heroDesc"></p>
+      <div class="hero-cta" id="heroCta"></div>
     </div>
-    <div class="hero-scroll">
-      <span>Scroll</span>
-      <div class="scroll-track"></div>
-    </div>
-  <?php else: ?>
-    <div class="hero-placeholder">🎭</div>
-    <div class="hero-grad"></div>
-    <div class="hero-content">
-      <h1 class="hero-title">Your Drama<br><em>Library</em></h1>
-      <p class="hero-desc">Start building your personal K-Drama collection today.</p>
-      <div class="hero-cta"><a href="add.php" class="btn-main">＋ Add First Drama</a></div>
-    </div>
-  <?php endif; ?>
+  </div>
+
+  <!-- Controls: prev / dots / next / counter -->
+  <div class="hero-controls">
+    <button class="hero-arrow" id="heroPrev" onclick="heroGo(-1)" title="Previous">‹</button>
+    <div class="hero-dots" id="heroDots"></div>
+    <button class="hero-arrow" id="heroNext" onclick="heroGo(1)" title="Next">›</button>
+    <span class="hero-counter" id="heroCounter"></span>
+  </div>
+
+  <div class="hero-scroll">
+    <span>Scroll</span>
+    <div class="scroll-track"></div>
+  </div>
 </section>
 
 <!-- STATS RIBBON -->
@@ -619,6 +650,7 @@ footer{text-align:center;padding:38px 5%;border-top:1px solid var(--border);back
 <!-- MAIN -->
 <div class="main">
   <?php if(!empty($search)): ?>
+  <!-- Search results banner — only "Clear" button, no duplicate search button -->
   <div class="srb">
     <div class="srb-inner">
       <div>
@@ -626,8 +658,7 @@ footer{text-align:center;padding:38px 5%;border-top:1px solid var(--border);back
         <div class="srb-p"><?php echo $total_row['total'];?> drama<?php echo $total_row['total']!=1?'s':'';?> found</div>
       </div>
       <div class="srb-btns">
-        <button class="srb-btn srb-btn-a" onclick="openSov()">🔍 New Search</button>
-        <a href="?" class="srb-btn srb-btn-b">✕ Clear</a>
+        <a href="?" class="srb-btn srb-btn-b">✕ Clear Search</a>
       </div>
     </div>
   </div>
@@ -653,7 +684,6 @@ footer{text-align:center;padding:38px 5%;border-top:1px solid var(--border);back
   <?php if($result && $result->num_rows>0){
     while($row=$result->fetch_assoc()){
       $img=!empty($row['image'])?basename($row['image']):'';
-      // Check uploads/ first (new), then img/ (legacy)
       if($img && file_exists(__DIR__."/uploads/".$img))       { $imgP="uploads/".$img; }
       elseif($img && file_exists(__DIR__."/img/".$img))       { $imgP="img/".$img; }
       else                                                    { $imgP=""; }
@@ -668,7 +698,6 @@ footer{text-align:center;padding:38px 5%;border-top:1px solid var(--border);back
       $ptwShort = $ptwStatus === 'Plan to Watch' ? 'Planning' : '';
   ?>
     <div class="card">
-      <!-- Poster area — opens lightbox -->
       <div class="cpw"
         onclick="openPLB('<?php echo $ij;?>','<?php echo $tj;?>','<?php echo $gj;?>','<?php echo $row['rating'];?>','<?php echo $row['episodes'];?>','<?php echo $row['released_year'];?>','<?php echo $row['id'];?>')">
         <?php if($hasImg): ?>
@@ -696,7 +725,6 @@ footer{text-align:center;padding:38px 5%;border-top:1px solid var(--border);back
           </div>
         </div>
       </div>
-      <!-- Label area — opens full detail modal -->
       <div class="clabel"
         onclick="openModal('<?php echo $ij;?>','<?php echo $tj;?>','<?php echo $gj;?>','<?php echo $row['rating'];?>','<?php echo $row['episodes'];?>','<?php echo $row['released_year'];?>','<?php echo $row['id'];?>')">
         <span style="overflow:hidden;text-overflow:ellipsis"><?php echo htmlspecialchars($row['title']);?></span>
@@ -826,7 +854,6 @@ footer{text-align:center;padding:38px 5%;border-top:1px solid var(--border);back
   </div>
 </div>
 
-<!-- Hidden PTW submit form -->
 <form method="POST" action="plan-to-watch.php" id="ptwForm" style="display:none">
   <input type="hidden" name="action"      value="add">
   <input type="hidden" name="drama_title" id="ptwFormTitle">
@@ -836,6 +863,201 @@ footer{text-align:center;padding:38px 5%;border-top:1px solid var(--border);back
 </form>
 
 <script>
+/* ══════════════════════════════════════
+   HERO SLIDESHOW DATA (from PHP)
+══════════════════════════════════════ */
+const SLIDES = <?php echo json_encode($slide_dramas, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT); ?>;
+
+(function() {
+  if (!SLIDES || SLIDES.length === 0) return;
+
+  const INTERVAL   = 4000;   // ms between auto-advances
+  const FADE_MS    = 600;    // must match CSS transition
+
+  let cur         = 0;
+  let timer       = null;
+  let useSlotB    = false;   // which img slot is "front"
+
+  const heroSec   = document.getElementById('heroSection');
+  const bgA       = document.getElementById('heroBgA');
+  const bgB       = document.getElementById('heroBgB');
+  const inner     = document.getElementById('heroContentInner');
+  const badge     = document.getElementById('heroBadge');
+  const tag1      = document.getElementById('heroTag1');
+  const tag2      = document.getElementById('heroTag2');
+  const titleEl   = document.getElementById('heroTitle');
+  const ratingEl  = document.getElementById('heroRating');
+  const yearEl    = document.getElementById('heroYear');
+  const epsEl     = document.getElementById('heroEps');
+  const descEl    = document.getElementById('heroDesc');
+  const ctaEl     = document.getElementById('heroCta');
+  const dotsEl    = document.getElementById('heroDots');
+  const counterEl = document.getElementById('heroCounter');
+  const progressEl= document.getElementById('heroProgress');
+
+  /* Build dot buttons */
+  SLIDES.forEach((_, i) => {
+    const d = document.createElement('button');
+    d.className = 'hero-dot-btn' + (i === 0 ? ' active' : '');
+    d.title = SLIDES[i].title;
+    d.onclick = () => heroJump(i);
+    dotsEl.appendChild(d);
+  });
+
+  function updateDots(idx) {
+    dotsEl.querySelectorAll('.hero-dot-btn').forEach((d, i) => {
+      d.classList.toggle('active', i === idx);
+    });
+  }
+
+  function buildTitle(title) {
+    const words = title.split(' ');
+    const mid   = Math.ceil(words.length / 2);
+    const l1    = words.slice(0, mid).join(' ');
+    const l2    = words.slice(mid).join(' ');
+    return l2
+      ? `${escH(l1)}<em>${escH(l2)}</em>`
+      : escH(l1);
+  }
+
+  function escH(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function applySlide(idx, animate) {
+    const s = SLIDES[idx];
+
+    /* ── Background crossfade ── */
+    const front = useSlotB ? bgB : bgA;
+    const back  = useSlotB ? bgA : bgB;
+
+    // pre-load into back slot
+    if (s.img && s.img !== '') {
+      back.src   = s.img;
+      back.style.display = 'block';
+    } else {
+      back.src   = '';
+      back.style.display = 'none';
+    }
+
+    if (animate) {
+      // fade content out
+      inner.classList.add('fading');
+
+      setTimeout(() => {
+        // swap which slot is visible
+        useSlotB = !useSlotB;
+        heroSec.classList.toggle('show-b', useSlotB);
+
+        // update text
+        fillContent(s);
+
+        // fade content back in
+        inner.classList.remove('fading');
+      }, FADE_MS);
+    } else {
+      // first load: set immediately, no animation
+      if (s.img && s.img !== '') {
+        front.src = s.img;
+        front.style.display = 'block';
+      } else {
+        front.src = '';
+        front.style.display = 'none';
+      }
+      heroSec.classList.toggle('show-b', useSlotB);
+      fillContent(s);
+    }
+
+    updateDots(idx);
+    counterEl.textContent = (idx + 1) + ' / ' + SLIDES.length;
+  }
+
+  function fillContent(s) {
+    /* Badge: #1 = "Top Rated", rest show rank */
+    const rank = SLIDES.indexOf(s);
+    badge.textContent = rank === 0 ? '★ Top Rated' : '★ #' + (rank + 1);
+
+    const genres = s.genres || [];
+    tag1.textContent = genres[0] || '';
+    tag1.style.display = genres[0] ? '' : 'none';
+    if (genres[1]) { tag2.textContent = genres[1]; tag2.style.display = ''; }
+    else           { tag2.style.display = 'none'; }
+
+    titleEl.innerHTML = buildTitle(s.title);
+    ratingEl.textContent = '⭐ ' + s.rating + '/10';
+    yearEl.textContent   = s.year;
+    epsEl.textContent    = s.eps + ' Episodes';
+
+    const gLow = (genres[0] || 'K-Drama').toLowerCase();
+    descEl.textContent = `"${s.title}" is a ${gLow} series from ${s.year} with ${s.eps} episode${s.eps != 1 ? 's' : ''}, rated ${s.rating}/10.`;
+
+    ctaEl.innerHTML =
+      `<button class="btn-main"
+         onclick="openModal('${esc(s.img)}','${esc(s.title)}','${esc(s.genre)}','${s.rating}','${s.eps}','${s.year}','${s.id}')">
+         ▶ View Details
+       </button>
+       <button class="btn-watchlist" onclick="openPTW('${esc(s.title)}')">
+         <i class="fas fa-bookmark"></i> Add to Watchlist
+       </button>
+       <a href="edit.php?id=${s.id}" class="btn-ghost">✏ Edit</a>`;
+  }
+
+  function esc(str) {
+    return String(str).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'\\"');
+  }
+
+  /* Progress bar animation — use rAF so browser actually resets before animating */
+  function startProgress() {
+    progressEl.style.transition = 'none';
+    progressEl.style.width = '0%';
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        progressEl.style.transition = 'width ' + INTERVAL + 'ms linear';
+        progressEl.style.width = '100%';
+      });
+    });
+  }
+  function resetProgress() {
+    progressEl.style.transition = 'none';
+    progressEl.style.width = '0%';
+  }
+
+  function advance() {
+    cur = (cur + 1) % SLIDES.length;
+    applySlide(cur, true);
+    startProgress();
+  }
+
+  function startTimer() {
+    clearInterval(timer);
+    timer = setInterval(advance, INTERVAL);
+  }
+
+  /* Public nav */
+  window.heroGo = function(dir) {
+    cur = (cur + dir + SLIDES.length) % SLIDES.length;
+    applySlide(cur, true);
+    resetProgress();
+    startTimer();
+    startProgress();
+  };
+
+  window.heroJump = function(idx) {
+    if (idx === cur) return;
+    cur = idx;
+    applySlide(cur, true);
+    resetProgress();
+    startTimer();
+    startProgress();
+  };
+
+  /* Init */
+  applySlide(0, false);
+  startTimer();
+  // Slight delay so progress bar starts after page paint
+  setTimeout(startProgress, 80);
+})();
+
 /* ── Particles ── */
 (function(){
   const c=document.getElementById('particles');
@@ -870,49 +1092,29 @@ function showToast(message, type='success'){
 
 /* ── Poster Lightbox ── */
 let _plbData = {};
-
 function openPLB(src, title, genre, rating, eps, year, id) {
   _plbData = {src, title, genre, rating, eps, year, id};
-
   const img = document.getElementById('plbImg');
   const ph  = document.getElementById('plbPh');
-
-  if(src && src !== 'img/' && src !== '' && src !== 'img/') {
-    img.src = src;
-    img.style.display = 'block';
-    ph.style.display  = 'none';
-  } else {
-    img.style.display = 'none';
-    ph.style.display  = 'flex';
-  }
-
+  if(src && src !== 'img/' && src !== '') {
+    img.src = src; img.style.display = 'block'; ph.style.display  = 'none';
+  } else { img.style.display = 'none'; ph.style.display  = 'flex'; }
   document.getElementById('plbTitle').textContent   = title;
   document.getElementById('plbYear').textContent    = year;
   document.getElementById('plbEps').textContent     = eps + ' episodes';
   document.getElementById('plbRating').textContent  = '⭐ ' + rating + '/10';
-
   document.getElementById('plbDetailBtn').onclick = function() {
-    closePLBDirect();
-    openModal(src, title, genre, rating, eps, year, id);
+    closePLBDirect(); openModal(src, title, genre, rating, eps, year, id);
   };
   document.getElementById('plbWatchBtn').onclick = function() {
-    closePLBDirect();
-    openPTW(title, genre);
+    closePLBDirect(); openPTW(title, genre);
   };
   document.getElementById('plbEditBtn').href = 'edit.php?id=' + id;
-
   document.getElementById('posterLightbox').classList.add('on');
   document.body.style.overflow = 'hidden';
 }
-
-function closePLBOnBg(e) {
-  if(e.target === document.getElementById('posterLightbox')) closePLBDirect();
-}
-
-function closePLBDirect() {
-  document.getElementById('posterLightbox').classList.remove('on');
-  document.body.style.overflow = '';
-}
+function closePLBOnBg(e) { if(e.target === document.getElementById('posterLightbox')) closePLBDirect(); }
+function closePLBDirect() { document.getElementById('posterLightbox').classList.remove('on'); document.body.style.overflow = ''; }
 
 /* ── Detail Modal ── */
 function openModal(src,title,genre,rating,eps,year,id){
@@ -936,7 +1138,6 @@ function openModal(src,title,genre,rating,eps,year,id){
   document.getElementById('modal-bg').classList.add('on');
   document.body.style.overflow='hidden';
 }
-
 function closeModal(){
   document.getElementById('modal-bg').classList.remove('on');
   document.body.style.overflow='';
@@ -944,19 +1145,14 @@ function closeModal(){
 
 /* ── PTW Modal ── */
 let _ptwTitle='', _ptwGenre='';
-
 function openPTW(title, genre=''){
   _ptwTitle=title; _ptwGenre=genre;
   document.getElementById('ptwDramaName').textContent=title;
   document.getElementById('ptwOverlay').classList.add('on');
   document.body.style.overflow='hidden';
 }
-function closePTW(){
-  document.getElementById('ptwOverlay').classList.remove('on');
-  document.body.style.overflow='';
-}
-function closePTWOnBg(e){if(e.target===document.getElementById('ptwOverlay'))closePTW();}
-
+function closePTW(){ document.getElementById('ptwOverlay').classList.remove('on'); document.body.style.overflow=''; }
+function closePTWOnBg(e){ if(e.target===document.getElementById('ptwOverlay'))closePTW(); }
 function submitPTW(){
   document.getElementById('ptwFormTitle').value    = _ptwTitle;
   document.getElementById('ptwFormGenre').value    = _ptwGenre;
@@ -972,10 +1168,10 @@ function openSov(){
   document.body.style.overflow='hidden';
   setTimeout(()=>{const i=document.getElementById('sovInput');i.focus();i.select();syncClear();},60);
 }
-function closeSov(){document.getElementById('sov').classList.remove('on');document.body.style.overflow='';}
-function sovBgClick(e){if(e.target===document.getElementById('sov'))closeSov();}
-function clearSov(){const i=document.getElementById('sovInput');i.value='';i.focus();syncClear();}
-function syncClear(){document.getElementById('sovClear').classList.toggle('on',document.getElementById('sovInput').value.length>0);}
+function closeSov(){ document.getElementById('sov').classList.remove('on'); document.body.style.overflow=''; }
+function sovBgClick(e){ if(e.target===document.getElementById('sov'))closeSov(); }
+function clearSov(){ const i=document.getElementById('sovInput');i.value='';i.focus();syncClear(); }
+function syncClear(){ document.getElementById('sovClear').classList.toggle('on',document.getElementById('sovInput').value.length>0); }
 document.getElementById('sovInput').addEventListener('input',syncClear);
 
 /* ── Keyboard shortcuts ── */
@@ -985,6 +1181,9 @@ document.addEventListener('keydown',e=>{
     const t=document.activeElement.tagName.toLowerCase();
     if(t!=='input'&&t!=='textarea'){e.preventDefault();openSov();}
   }
+  /* Arrow keys for hero slideshow */
+  if(e.key==='ArrowLeft' && typeof heroGo==='function') heroGo(-1);
+  if(e.key==='ArrowRight' && typeof heroGo==='function') heroGo(1);
 });
 </script>
 </body>
